@@ -1,0 +1,1448 @@
+<title>Audit du calculateur d'indemnités</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Open+Sans:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+  /* ───────────────────────────────────────────────────────────────
+     Charte Victimes & Préjudices, reprise du projet audité :
+     brique #B52026 · ambre #FDAF19 · vert #8EC33F · anthracite #2F3032
+     Neutres à bascule chaude (ivoire #F6F5F3), filets #DCDCDD.
+     ─────────────────────────────────────────────────────────────── */
+
+  :root {
+    --ground:        #F6F5F3;
+    --surface:       #FFFFFF;
+    --surface-sunk:  #EFEDE9;
+    --ink:           #2F3032;
+    --ink-soft:      #61605E;
+    --ink-faint:     #8B8A87;
+    --rule:          #DCDCDD;
+    --rule-soft:     #E8E6E3;
+
+    --brique:        #B52026;
+    --brique-wash:   #FBEEEE;
+    --ambre:         #C98304;
+    --ambre-mark:    #FDAF19;
+    --ambre-wash:    #FDF4E3;
+    --vert:          #5E8C1E;
+    --vert-mark:     #8EC33F;
+    --vert-wash:     #F0F6E6;
+    --acier:         #5A6270;
+    --acier-wash:    #EEF0F3;
+
+    --radius: 4px;
+    --measure: 68ch;
+
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:       #1B1C1E;
+      --surface:      #232427;
+      --surface-sunk: #2B2C30;
+      --ink:          #ECEAE6;
+      --ink-soft:     #ABA9A5;
+      --ink-faint:    #85837F;
+      --rule:         #3A3B3F;
+      --rule-soft:    #303136;
+
+      --brique:       #E4676B;
+      --brique-wash:  #33201F;
+      --ambre:        #F0B542;
+      --ambre-mark:   #FDAF19;
+      --ambre-wash:   #322815;
+      --vert:         #A8D45E;
+      --vert-mark:    #8EC33F;
+      --vert-wash:    #212C18;
+      --acier:        #9AA4B4;
+      --acier-wash:   #262A31;
+
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:       #1B1C1E;
+    --surface:      #232427;
+    --surface-sunk: #2B2C30;
+    --ink:          #ECEAE6;
+    --ink-soft:     #ABA9A5;
+    --ink-faint:    #85837F;
+    --rule:         #3A3B3F;
+    --rule-soft:    #303136;
+
+    --brique:       #E4676B;
+    --brique-wash:  #33201F;
+    --ambre:        #F0B542;
+    --ambre-mark:   #FDAF19;
+    --ambre-wash:   #322815;
+    --vert:         #A8D45E;
+    --vert-mark:    #8EC33F;
+    --vert-wash:    #212C18;
+    --acier:        #9AA4B4;
+    --acier-wash:   #262A31;
+
+    color-scheme: dark;
+  }
+
+  /* ── Base ─────────────────────────────────────────────────────── */
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Open Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 72rem;
+    margin-inline: auto;
+    padding-inline: 20px;
+    padding-block: 0 5rem;
+  }
+
+  h1, h2, h3, h4, .display {
+    font-family: "Poppins", ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  p { margin: 0; }
+  a { color: var(--brique); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+  code, .mono {
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.855em;
+    font-variant-ligatures: none;
+  }
+
+  code {
+    background: var(--surface-sunk);
+    padding: 0.1em 0.34em;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+
+  :is(a, button, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--brique);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  /* ── En-tête / fiche dossier ──────────────────────────────────── */
+
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding-block: 3rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+  }
+
+  .eyebrow {
+    font-family: "Poppins", sans-serif;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .masthead h1 {
+    font-size: clamp(2rem, 5.5vw, 3.1rem);
+    line-height: 1.06;
+  }
+
+  .standfirst {
+    max-width: var(--measure);
+    font-size: 1.0625rem;
+    color: var(--ink-soft);
+  }
+
+  .fiche {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem 1.75rem;
+    border-top: 1px solid var(--rule);
+    padding-top: 1.1rem;
+  }
+
+  .fiche div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .fiche dt {
+    font-family: "Poppins", sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .fiche dd {
+    margin: 0;
+    font-size: 0.875rem;
+    overflow-wrap: anywhere;
+  }
+
+  /* ── Bandeau de sévérité ──────────────────────────────────────── */
+
+  .tally {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-top: 2.5rem;
+  }
+
+  .tally-cell {
+    flex: 1 1 130px;
+    background: var(--surface);
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    border-top: 3px solid var(--sev, var(--rule));
+  }
+
+  .tally-n {
+    font-family: "Poppins", sans-serif;
+    font-weight: 600;
+    font-size: 1.5rem;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    color: var(--sev, var(--ink));
+  }
+
+  .tally-k {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: "Poppins", sans-serif;
+    font-weight: 500;
+    color: var(--ink-soft);
+  }
+
+  .sev-crit { --sev: var(--brique); }
+  .sev-haut { --sev: var(--ambre-mark); }
+  .sev-moy  { --sev: var(--acier); }
+  .sev-bas  { --sev: var(--vert-mark); }
+
+  /* ── Sections ─────────────────────────────────────────────────── */
+
+  section { padding-block: 3.25rem 0; }
+
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.9rem;
+    border-bottom: 1px solid var(--ink);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .sec-num {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--brique);
+    flex: none;
+  }
+
+  .sec-head h2 { font-size: clamp(1.25rem, 2.6vw, 1.6rem); }
+
+  .prose { max-width: var(--measure); display: flex; flex-direction: column; gap: 1rem; }
+  .prose h3 {
+    font-size: 1.0625rem;
+    margin-top: 0.75rem;
+  }
+  .prose ul { margin: 0; padding-left: 1.15rem; display: flex; flex-direction: column; gap: 0.4rem; }
+
+  /* ── Encadré (verdict) ────────────────────────────────────────── */
+
+  .callout {
+    border-left: 3px solid var(--brique);
+    background: var(--brique-wash);
+    padding: 1.1rem 1.3rem;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-width: var(--measure);
+  }
+  .callout.neutre { border-left-color: var(--acier); background: var(--acier-wash); }
+  .callout.bon    { border-left-color: var(--vert-mark); background: var(--vert-wash); }
+  .callout p { font-size: 0.9375rem; }
+  .callout strong { font-family: "Poppins", sans-serif; font-weight: 600; }
+
+  /* ── Constats ─────────────────────────────────────────────────── */
+
+  .findings { display: flex; flex-direction: column; }
+
+  .finding {
+    display: grid;
+    grid-template-columns: 4.25rem 1fr;
+    gap: 0 1.1rem;
+    padding: 1.25rem 0 1.35rem 0.9rem;
+    border-left: 3px solid var(--sev, var(--rule));
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .finding:first-child { border-top: 1px solid var(--rule-soft); }
+
+  .f-code {
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--sev, var(--ink));
+    padding-top: 2px;
+  }
+
+  .f-body { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
+
+  .f-title {
+    font-family: "Poppins", sans-serif;
+    font-weight: 600;
+    font-size: 1.0625rem;
+    line-height: 1.35;
+    text-wrap: balance;
+  }
+
+  .f-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem 0.7rem;
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+  }
+
+  .chip {
+    font-family: "Poppins", sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.16rem 0.45rem;
+    border-radius: 2px;
+    color: var(--sev, var(--ink));
+    background: var(--sev-wash, var(--surface-sunk));
+    flex: none;
+  }
+
+  .f-path {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    overflow-wrap: anywhere;
+  }
+
+  .f-body p { font-size: 0.9375rem; }
+  .f-body ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.9375rem; }
+
+  .f-fix {
+    border-top: 1px dotted var(--rule);
+    padding-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+  }
+  .f-fix b {
+    font-family: "Poppins", sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: block;
+    margin-bottom: 1px;
+  }
+
+  .crit { --sev: var(--brique);     --sev-wash: var(--brique-wash); }
+  .haut { --sev: var(--ambre);      --sev-wash: var(--ambre-wash); }
+  .moy  { --sev: var(--acier);      --sev-wash: var(--acier-wash); }
+  .bas  { --sev: var(--vert);       --sev-wash: var(--vert-wash); }
+
+  /* ── Formules ─────────────────────────────────────────────────── */
+
+  .formula {
+    background: var(--surface-sunk);
+    border-left: 2px solid var(--rule);
+    padding: 0.6rem 0.85rem;
+    border-radius: 0 3px 3px 0;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.78rem;
+    line-height: 1.75;
+    overflow-x: auto;
+    color: var(--ink);
+  }
+  .formula .lbl { color: var(--ink-faint); }
+
+  /* ── Tables ───────────────────────────────────────────────────── */
+
+  .scroller {
+    overflow-x: auto;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.875rem; }
+
+  thead th {
+    font-family: "Poppins", sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    text-align: left;
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+    background: var(--surface);
+  }
+
+  tbody td {
+    padding: 0.62rem 0.9rem;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:nth-child(even) td { background: color-mix(in oklab, var(--surface-sunk) 45%, transparent); }
+
+  td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  td.tight { white-space: nowrap; }
+
+  .etat {
+    font-family: "Poppins", sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.14rem 0.42rem;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .e-ok    { color: var(--vert);   background: var(--vert-wash); }
+  .e-part  { color: var(--ambre);  background: var(--ambre-wash); }
+  .e-red   { color: var(--acier);  background: var(--acier-wash); }
+  .e-abs   { color: var(--brique); background: var(--brique-wash); }
+  .e-plus  { color: var(--acier);  background: var(--acier-wash); }
+
+  /* ── Plan d'action ────────────────────────────────────────────── */
+
+  .plan { display: flex; flex-direction: column; gap: 1.5rem; }
+
+  .lot { display: grid; grid-template-columns: minmax(0, 13rem) 1fr; gap: 0.75rem 1.5rem; }
+
+  .lot-head { display: flex; flex-direction: column; gap: 0.2rem; }
+  .lot-rank {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--brique);
+  }
+  .lot-title { font-family: "Poppins", sans-serif; font-weight: 600; font-size: 1rem; line-height: 1.3; }
+  .lot-when { font-size: 0.78rem; color: var(--ink-faint); }
+
+  .lot ol { margin: 0; padding-left: 1.15rem; display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.9375rem; }
+  .lot ol code { font-size: 0.8em; }
+
+  /* ── Pied ─────────────────────────────────────────────────────── */
+
+  footer {
+    margin-top: 4rem;
+    border-top: 1px solid var(--rule);
+    padding-top: 1.1rem;
+    font-size: 0.8rem;
+    color: var(--ink-faint);
+    max-width: var(--measure);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  @media (max-width: 640px) {
+    .finding { grid-template-columns: 1fr; gap: 0.35rem; padding-left: 0.75rem; }
+    .f-code { padding-top: 0; }
+    .lot { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="page">
+
+  <header class="masthead">
+    <div class="eyebrow">Cabinet Victimes &amp; Préjudices — revue de code</div>
+    <h1>Audit du calculateur d'indemnités</h1>
+    <p class="standfirst">
+      Revue complète du projet Lovable <em>Indemnity Calculator</em> (<span class="mono">securi-calcul</span>) :
+      fidélité du moteur de calcul au cahier des charges, cloisonnement des données entre cabinets,
+      qualité logicielle. 21 constats, dont 5 à traiter avant tout usage sur un dossier réel.
+    </p>
+    <dl class="fiche">
+      <div><dt>Projet</dt><dd>d8b84fbc-40cd-40a8-8366-d405b3cb6c21</dd></div>
+      <div><dt>Commit audité</dt><dd class="mono">20a7408f</dd></div>
+      <div><dt>Dernière édition</dt><dd>3 août 2026</dd></div>
+      <div><dt>Pile technique</dt><dd>TanStack Start · React 19 · Supabase</dd></div>
+      <div><dt>Périmètre</dt><dd>~180 fichiers, 7 migrations SQL</dd></div>
+      <div><dt>Tests existants</dt><dd>168 (Vitest)</dd></div>
+    </dl>
+  </header>
+
+  <div class="tally" role="group" aria-label="Répartition des constats par gravité">
+    <div class="tally-cell sev-crit"><span class="tally-n">1</span><span class="tally-k">Critique</span></div>
+    <div class="tally-cell sev-haut"><span class="tally-n">4</span><span class="tally-k">Élevé</span></div>
+    <div class="tally-cell sev-moy"><span class="tally-n">9</span><span class="tally-k">Moyen</span></div>
+    <div class="tally-cell sev-bas"><span class="tally-n">7</span><span class="tally-k">Faible</span></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <section id="verdict">
+    <div class="sec-head"><span class="sec-num">01</span><h2>Verdict</h2></div>
+
+    <div class="prose">
+      <p>
+        Le projet est nettement au-dessus de ce qu'on attend d'une application générée : moteur de calcul
+        isolé dans des fonctions pures, 168 tests unitaires incluant les deux valeurs de contrôle du
+        cahier des charges (PER viager femme stationnaire 30&nbsp;ans = 47,919 ; homme prospectif
+        30&nbsp;ans = 51,328), politiques RLS écrites à la main, journal d'audit, et des fonctionnalités
+        qui dépassent la commande initiale — intérêts au taux légal, ventilation des créances par
+        organisme, chiffrages figés comparables, gestion multi-cabinets.
+      </p>
+      <p>
+        Trois angles morts empêchent aujourd'hui de le considérer comme fiable pour produire une
+        réclamation.
+      </p>
+    </div>
+
+    <div class="callout" style="margin-top:1.5rem">
+      <p><strong>1. Le système de référentiels versionnés ne pilote aucun chiffre.</strong>
+        Toute la mécanique base de données (référentiels → éditions → valeurs → épinglage par dossier →
+        bandeau «&nbsp;Recalcul disponible&nbsp;») est en place et fonctionne, mais les modules de calcul
+        importent les JSON figés du bundle. Un administrateur qui met à jour un barème, l'active et
+        recalcule un dossier voit l'interface confirmer l'opération sans qu'aucun montant ne bouge.
+        C'est <a href="#F1">F1</a>, et c'est le constat structurant de cet audit.</p>
+    </div>
+
+    <div class="callout" style="margin-top:0.9rem">
+      <p><strong>2. Deux zéros silencieux dans des cas réalistes.</strong>
+        Un taux d'AIPP fractionnaire tombant entre deux tranches du barème (5,5&nbsp;% ; 10,5&nbsp;%…)
+        renvoie une valeur du point de 0&nbsp;€, donc un DFP à 0&nbsp;€ (<a href="#F3">F3</a>).
+        Et sur tables prospectives, toute victime de 90&nbsp;ans ou plus à la liquidation obtient un prix
+        de l'euro de rente nul, donc une capitalisation nulle sur tous les postes futurs
+        (<a href="#F2">F2</a>). Un avertissement couvre le second cas, aucun ne couvre le premier.</p>
+    </div>
+
+    <div class="callout" style="margin-top:0.9rem">
+      <p><strong>3. Le cloisonnement inter-cabinets a une faille d'escalade.</strong>
+        N'importe quel compte authentifié peut créer un cabinet, en devenir automatiquement administrateur,
+        et de ce seul fait obtenir le droit d'éditer et d'activer les référentiels <em>globaux</em>
+        partagés par tous les cabinets (<a href="#S1">S1</a>). L'impact est aujourd'hui limité par F1 —
+        mais corriger F1 sans corriger S1 transformerait cette faille en atteinte directe aux calculs
+        de tous les utilisateurs.</p>
+    </div>
+
+    <div class="callout bon" style="margin-top:0.9rem">
+      <p><strong>Ce qui est solide et n'a pas besoin d'être retouché.</strong>
+        La grille du point d'AIPP est exacte, valeur par valeur, y compris l'exemple de contrôle Mornet
+        (25&nbsp;ans, 32&nbsp;%, 3&nbsp;740&nbsp;€/point). Les six barèmes de capitalisation sont complets
+        et contigus (âges 0–104 en lignes, colonnes 1–104). La règle du droit de préférence de la victime
+        est implémentée à la lettre et testée. Les dates suivent DATEDIF sans dérive de fuseau. La charte
+        graphique est correctement traduite en jetons CSS, avec une feuille d'impression soignée.</p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <section id="methode">
+    <div class="sec-head"><span class="sec-num">02</span><h2>Périmètre et méthode</h2></div>
+    <div class="prose">
+      <p>
+        L'audit a porté sur le commit <span class="mono">20a7408f</span>, lu via l'API Lovable :
+        les 7 migrations SQL, la couche d'authentification et les fonctions serveur, l'intégralité du
+        moteur <code>src/lib/calculs/</code>, la couche référentiels, les données de référence
+        <code>src/data/</code>, le design system et la configuration d'outillage.
+      </p>
+      <p>
+        La référence de conformité est le cahier des charges d'origine du projet (prompt de création,
+        15 sections, formules Excel tracées entre crochets). Les données de référence ont été vérifiées
+        par script&nbsp;: structure, contiguïté des index, présence de valeurs nulles, valeurs de contrôle.
+      </p>
+      <p>
+        <strong>Non couvert&nbsp;:</strong> exécution de la suite de tests (pas d'accès au dépôt Git —
+        le projet n'est lié à aucun dépôt GitHub), test d'intrusion réel sur l'instance Supabase,
+        revue ligne à ligne des 22 fichiers de routes et des composants <code>ui/</code> issus de shadcn.
+        Les constats de sécurité sont établis par lecture des politiques RLS et des fonctions serveur,
+        non par exploitation.
+      </p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <section id="calculs">
+    <div class="sec-head"><span class="sec-num">03</span><h2>Fidélité des calculs</h2></div>
+    <div class="prose" style="margin-bottom:1.75rem">
+      <p>
+        Le cahier des charges pose une exigence explicite&nbsp;: «&nbsp;la fidélité des calculs prime sur
+        tout&nbsp;». Les constats ci-dessous sont classés selon l'écart réel entre le montant produit et
+        celui attendu.
+      </p>
+    </div>
+
+    <div class="findings">
+
+      <article class="finding crit" id="F1">
+        <div class="f-code">F1</div>
+        <div class="f-body">
+          <div class="f-title">Les référentiels versionnés ne sont branchés sur aucun calcul</div>
+          <div class="f-meta">
+            <span class="chip">Critique</span>
+            <span class="f-path">src/lib/referentiels/access.ts · src/lib/calculs/capitalisation.ts · esperance.ts · revalorisation.ts</span>
+          </div>
+          <p>
+            <code>access.ts</code> expose une API propre (<code>getBaremePER</code>,
+            <code>getIndicesAnnuels</code>, <code>getAIPP</code>…) capable de reconstruire une payload
+            depuis les lignes d'une édition en base. Personne ne l'appelle. Les modules de calcul
+            importent directement les fichiers du bundle&nbsp;:
+          </p>
+          <div class="formula">import bFemmeStat from <span class="lbl">"@/data/bareme_femme_stationnaire_2025.json"</span>;  <span class="lbl">// capitalisation.ts</span>
+import indices    from <span class="lbl">"@/data/indices_actualisation.json"</span>;          <span class="lbl">// revalorisation.ts</span>
+import table2020  from <span class="lbl">"@/data/mortalite_2020_2022.json"</span>;            <span class="lbl">// esperance.ts</span></div>
+          <p>
+            <code>useDossier</code> ne charge jamais <code>dossier_editions</code> et ne construit jamais
+            de <code>ReferentielsSource</code>. Conséquence en chaîne&nbsp;: l'écran d'administration des
+            référentiels, l'import CSV, le cycle brouillon → actif → archivé, l'épinglage par dossier et
+            le bouton de recalcul forment un circuit fermé, sans effet sur un seul montant.
+          </p>
+          <p>
+            Le plus gênant est la promesse faite à l'utilisateur. L'en-tête de
+            <code>recalcul.functions.ts</code> affirme&nbsp;: «&nbsp;Les calculs sont refaits
+            automatiquement lors de la prochaine ouverture du dossier par les modules de calcul.&nbsp;»
+            C'est faux. Pour un outil qui sert à chiffrer une réclamation, un administrateur convaincu
+            d'avoir appliqué le barème 2026 alors que le moteur reste sur 2025 est un risque
+            professionnel, pas seulement un bug.
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Faire passer <code>ReferentielsSource</code> jusqu'au moteur&nbsp;: charger les lignes des
+            éditions épinglées au chargement du dossier, les injecter dans <code>calculerSynthese</code>
+            et dans chaque fonction de poste, et remplacer les imports JSON directs par des appels à
+            <code>access.ts</code>. Tant que ce n'est pas fait, retirer le bandeau de recalcul et
+            l'administration des référentiels de la navigation, ou les marquer explicitement
+            «&nbsp;aperçu, sans effet sur les calculs&nbsp;».
+          </div>
+        </div>
+      </article>
+
+      <article class="finding haut" id="F2">
+        <div class="f-code">F2</div>
+        <div class="f-body">
+          <div class="f-title">Prix de l'euro de rente nul, sans erreur, au-delà de 89 ans en tables prospectives</div>
+          <div class="f-meta">
+            <span class="chip">Élevé</span>
+            <span class="f-path">src/lib/calculs/capitalisation.ts → perViager()</span>
+          </div>
+          <p>
+            Dans les barèmes prospectifs, la colonne viagère est la colonne 90, et elle vaut
+            <code>null</code> à partir de la ligne d'âge 90. Vérification sur
+            <code>bareme_homme_prospectif_2025.json</code>&nbsp;:
+          </p>
+          <div class="formula">age 88 → 1.77       age 90 → null       age 95  → null
+age 89 → 0.879      age 91 → null       age 104 → null</div>
+          <p>
+            <code>perViager</code> traduit <code>null</code> en <code>0</code>
+            (<code>typeof v === "number" ? v : 0</code>). Une victime de 90&nbsp;ans ou plus à la
+            liquidation, sur tables prospectives, obtient donc une capitalisation nulle sur
+            <em>tous</em> les postes futurs à la fois&nbsp;: PGPF, ATP permanente, DSF récurrentes,
+            logement et véhicule adaptés, pertes de revenus des proches. Le même défaut existe sur les
+            tables stationnaires, mais seulement à l'âge exact de 104&nbsp;ans (ligne entièrement nulle).
+          </p>
+          <p>
+            Atténuation réelle&nbsp;: <code>collecterAvertissements</code> émet bien un
+            <code>PER_NUL</code> pour ces postes. Mais le message oriente vers «&nbsp;la date de
+            naissance, l'âge de fin et la table barémique&nbsp;» sans nommer la cause, et les montants
+            affichent 0&nbsp;€ dans la synthèse comme s'il s'agissait d'un résultat.
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Distinguer «&nbsp;valeur absente de la table&nbsp;» de «&nbsp;valeur nulle&nbsp;»&nbsp;:
+            faire renvoyer <code>null</code> à <code>perViager</code> / <code>perTemporaire</code> hors
+            table, propager l'indisponibilité jusqu'à l'affichage (tiret, pas 0&nbsp;€), et émettre un
+            avertissement nommant explicitement la borne d'âge du barème prospectif.
+          </div>
+        </div>
+      </article>
+
+      <article class="finding haut" id="F3">
+        <div class="f-code">F3</div>
+        <div class="f-body">
+          <div class="f-title">Un taux d'AIPP fractionnaire entre deux tranches annule le DFP</div>
+          <div class="f-meta">
+            <span class="chip">Élevé</span>
+            <span class="f-path">src/data/bareme_aipp.ts → valeurPointAIPP()</span>
+          </div>
+          <p>
+            Les tranches de taux sont bornées en entiers&nbsp;: <code>{min:1,max:5}</code>,
+            <code>{min:6,max:10}</code>, <code>{min:11,max:15}</code>… La recherche est un
+            <code>findIndex</code> sur <code>tauxPct &gt;= t.min &amp;&amp; tauxPct &lt;= t.max</code>.
+            Un taux de 5,5&nbsp;% n'appartient à aucune tranche&nbsp;: 5,5&nbsp;&gt;&nbsp;5 et
+            5,5&nbsp;&lt;&nbsp;6.
+          </p>
+          <div class="formula">valeurPointAIPP(5,   35) → 2465   <span class="lbl">// ✓</span>
+valeurPointAIPP(5.5, 35) →    0   <span class="lbl">// ✗ trou entre tranches → DFP = 0 €</span>
+valeurPointAIPP(6,   35) → 1800   <span class="lbl">// ✓</span></div>
+          <p>
+            Le trou se répète à 10,5&nbsp;/ 15,5&nbsp;/ 20,5&nbsp;% et ainsi de suite — soit 19 intervalles
+            morts. Les demi-points d'AIPP sont courants en expertise. <code>calculerDFP</code> renvoie
+            alors <code>{valeurPoint: 0, montant: 0}</code> sans avertissement&nbsp;: le seul contrôle
+            existant (<code>AIPP_HORS_BORNES</code>) ne se déclenche que hors de l'intervalle [0, 100].
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Faire porter la sélection sur <code>tauxPct &gt; t.min - 1</code> (ou arrondir le taux à
+            l'entier supérieur avant recherche, ce qui correspond à la lecture usuelle du référentiel),
+            et ajouter un avertissement lorsque <code>valeurPointAIPP</code> ne trouve pas de case alors
+            que le taux est renseigné. Un test paramétré sur les 19 bornes fermerait durablement le sujet.
+          </div>
+        </div>
+      </article>
+
+      <article class="finding haut" id="F4">
+        <div class="f-code">F4</div>
+        <div class="f-body">
+          <div class="f-title">L'assistance tierce personne temporaire n'accepte aucune créance de tiers payeur</div>
+          <div class="f-meta">
+            <span class="chip">Élevé</span>
+            <span class="f-path">src/lib/calculs/types.ts → ATPTempPeriode · postes/synthese.ts</span>
+          </div>
+          <p>
+            Le type <code>ATPTempPeriode</code> ne comporte pas de champ <code>tiersPayeur</code>, et la
+            synthèse pousse la ligne avec une créance figée à zéro&nbsp;:
+          </p>
+          <div class="formula">lignes.push(ligne(<span class="lbl">"ATP-T"</span>, <span class="lbl">"Assistance tierce personne (temporaire)"</span>, <span class="lbl">"PT"</span>, atpT.total, <b>0</b>, f, c));</div>
+          <p>
+            Le cahier des charges (§&nbsp;7.3) prévoit explicitement une créance saisie <em>L</em> et une
+            répartition victime / tiers payeur. En pratique, la PCH, la majoration pour tierce personne
+            ou les prestations d'une mutuelle ne peuvent pas être imputées sur ce poste&nbsp;: la part
+            revenant à la victime est mécaniquement surévaluée sur l'un des postes les plus lourds d'un
+            dossier de dommage corporel.
+          </p>
+          <p>
+            La ventilation par organisme (<code>creancesTP</code>) permet de saisir la créance à titre
+            documentaire, mais elle est purement déclarative — <code>calculerRecoursTP</code> se contente
+            de signaler un écart avec la synthèse sans corriger la répartition.
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Ajouter <code>tiersPayeur</code> à <code>ATPTempPeriode</code> (ou une créance globale au
+            poste), l'exposer à la saisie, et la passer à <code>ligne()</code> pour que la règle
+            <code>repartition()</code>, déjà correcte, s'applique. Même remarque pour le DFT si une
+            créance devait s'y imputer.
+          </div>
+        </div>
+      </article>
+
+      <article class="finding moy" id="F5">
+        <div class="f-code">F5</div>
+        <div class="f-body">
+          <div class="f-title">ATP permanente : facteur d'annualisation différent de la formule prescrite</div>
+          <div class="f-meta">
+            <span class="chip">Moyen</span>
+            <span class="f-path">src/lib/calculs/postes/permanents.ts → calculerATPPerm()</span>
+          </div>
+          <p>Le cahier des charges (§&nbsp;9.4) et l'implémentation divergent&nbsp;:</p>
+          <div class="formula"><span class="lbl">CDC  :</span> volume annuel = heures × 365 × (jours/365,25)   → 412 j ⇒ ×411,7180
+<span class="lbl">Code :</span> rente annuelle = tauxHoraire × heures × jours     → 412 j ⇒ ×412,0000</div>
+          <p>
+            L'écart est de +0,068&nbsp;%. Sur une ATP permanente capitalisée à 600&nbsp;000&nbsp;€, cela
+            représente environ 410&nbsp;€ — négligeable en soi, mais l'exigence posée est la fidélité
+            exacte, et l'écart est systématique et non documenté. À noter également&nbsp;: la périodicité
+            (jour / semaine / mois / an) et le type d'assistance (nuit passive, non spécialisée,
+            spécialisée) prévus au cahier des charges ont disparu du modèle, qui ne connaît que des
+            heures par jour.
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Soit appliquer la formule du cahier des charges, soit consigner explicitement la convention
+            retenue dans le code et dans une note d'interface. L'ATP temporaire, elle, applique bien
+            <code>facteur / 365</code> et est conforme — les deux modules devraient au minimum s'accorder.
+          </div>
+        </div>
+      </article>
+
+      <article class="finding moy" id="F6">
+        <div class="f-code">F6</div>
+        <div class="f-body">
+          <div class="f-title">Dépenses de santé récurrentes : le décompte d'occurrences est remplacé par une fraction d'année</div>
+          <div class="f-meta">
+            <span class="chip">Moyen</span>
+            <span class="f-path">src/lib/calculs/postes/dsa.ts → calculerDSARecurrentes()</span>
+          </div>
+          <p>
+            Le cahier des charges (§&nbsp;7.2) compte des occurrences entières et les multiplie par le
+            montant unitaire. Le code annualise puis proratise&nbsp;:
+          </p>
+          <div class="formula"><span class="lbl">CDC  :</span> H = ARRONDI(fréquence × jours / diviseur ; 0)   puis  I = montant × H
+<span class="lbl">Code :</span> I = annualiser(montant, périodicité) × (jours + 1) / 365,25
+
+<span class="lbl">Exemple — 100 € par mois du 01/01/2024 au 31/12/2024 :</span>
+  CDC  → ARRONDI(365 / 30) = 12 occurrences   → 1 200,00 €
+  Code → 1 200 × 366 / 365,25                 → 1 202,46 €</div>
+          <p>
+            Trois écarts s'additionnent&nbsp;: le champ «&nbsp;fréquence&nbsp;» du cahier des charges
+            n'existe pas dans <code>DSARecurrente</code>&nbsp;; la période est saisie librement au lieu
+            d'être bornée à accident → veille de consolidation&nbsp;; et la revalorisation part du milieu
+            de période (<code>milieuPeriode()</code>) au lieu de la date d'évaluation. Les deux dernières
+            décisions sont défendables et documentées en commentaire — mais elles doivent être assumées
+            comme telles, pas présentées comme la reproduction du fichier Excel.
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Décider explicitement du modèle retenu, l'écrire dans la documentation du poste, et poser un
+            test de non-régression sur un cas type. Si la fidélité prime, réintroduire le champ fréquence
+            et le décompte d'occurrences arrondi.
+          </div>
+        </div>
+      </article>
+
+      <article class="finding moy" id="F7">
+        <div class="f-code">F7</div>
+        <div class="f-body">
+          <div class="f-title">PGPA : la durée d'arrêt compte un jour de plus que DATEDIF</div>
+          <div class="f-meta">
+            <span class="chip">Moyen</span>
+            <span class="f-path">src/lib/calculs/postes/pgpa.ts → calculerPGPA()</span>
+          </div>
+          <p>
+            Le cahier des charges (§&nbsp;7.5) définit <em>C</em> comme <code>jours(début → fin)</code>,
+            soit DATEDIF « d » sans incrément, puis <em>G = C / 365,25 × revenu de référence</em>.
+            Le code calcule <code>annees = (j + 1) / 365,25</code>.
+          </p>
+          <div class="formula"><span class="lbl">Arrêt du 01/01 au 31/12/2024 — revenu de référence 40 000 € :</span>
+  CDC  → 365 / 365,25 × 40 000 = 39 972,62 €
+  Code → 366 / 365,25 × 40 000 = 40 082,14 €        <span class="lbl">écart : +109,52 €</span></div>
+          <p>
+            Le choix du jour inclus est cohérent avec les autres postes (DFT, ATP temporaire comptent
+            <code>j + 1</code>) — mais il diverge de la formule prescrite, et le module partage ce
+            flottement avec <code>calculerEchus</code>, qui utilise lui <code>jours / 365,25</code> sans
+            incrément. Deux conventions coexistent dans le même moteur.
+          </p>
+          <p>
+            Par ailleurs, la méthode «&nbsp;référence&nbsp;» ne connaît pas de revenu conservé par période
+            (§&nbsp;7.5 en prévoit un, avec sa propre périodicité), et les deux premières méthodes du
+            cahier des charges — avis d'imposition sur 4&nbsp;années, pluralité de revenus sur 3&nbsp;blocs —
+            n'existent pas.
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Fixer une convention unique de comptage des jours pour tout le moteur, la nommer explicitement
+            (<code>joursInclusifs</code> vs <code>joursDatedif</code>) et l'appliquer partout, tests à
+            l'appui.
+          </div>
+        </div>
+      </article>
+
+      <article class="finding moy" id="F8">
+        <div class="f-code">F8</div>
+        <div class="f-body">
+          <div class="f-title">Dépenses de santé : la créance du tiers payeur est revalorisée alors que la spec la reprend nominale</div>
+          <div class="f-meta">
+            <span class="chip">Moyen</span>
+            <span class="f-path">src/lib/calculs/postes/dsa.ts · fraisDiversVictime.ts</span>
+          </div>
+          <div class="formula"><span class="lbl">CDC §7.1 :</span> F = C − E ;  I = revalo(F) ;  J = I + E     <span class="lbl">← E nominal</span>
+<span class="lbl">Code     :</span> J = revalo(C) ;  E' = revalo(E)               <span class="lbl">← E revalorisé</span></div>
+          <p>
+            Le code documente ce choix («&nbsp;assiette homogène&nbsp;») et il est défendable&nbsp;: rien
+            ne justifie économiquement de revaloriser le reste à charge sans revaloriser la créance.
+            Il produit néanmoins un montant de poste différent de celui du fichier Excel de référence,
+            ce qui rendra tout rapprochement avec un chiffrage antérieur incompréhensible si l'écart
+            n'est pas signalé.
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Conserver le choix, mais l'afficher dans l'interface du poste (une ligne&nbsp;: «&nbsp;créance
+            TP revalorisée à la date de liquidation&nbsp;») et le consigner dans la documentation des
+            écarts assumés au fichier source.
+          </div>
+        </div>
+      </article>
+
+      <article class="finding moy" id="F9">
+        <div class="f-code">F9</div>
+        <div class="f-body">
+          <div class="f-title">Deux fonctions <code>joursEntre</code> concurrentes, aux conventions opposées</div>
+          <div class="f-meta">
+            <span class="chip">Moyen</span>
+            <span class="f-path">src/lib/calculs/dates.ts · src/lib/calculs/interets.ts</span>
+          </div>
+          <div class="formula"><span class="lbl">dates.ts    :</span> Math.round((b − a) / 86400000)         <span class="lbl">// exclusif — DATEDIF "d"</span>
+<span class="lbl">interets.ts :</span> Math.round((b − a) / 86400000) + 1     <span class="lbl">// inclusif</span></div>
+          <p>
+            La seconde est locale au module d'intérêts et n'est pas exportée, donc il n'y a pas de
+            collision aujourd'hui. Mais deux fonctions homonymes aux sémantiques inverses dans un moteur
+            dont toute la valeur repose sur le comptage des jours est un piège pour la prochaine
+            modification. Les deux modules divergent aussi sur l'ancrage horaire (minuit UTC contre
+            12&nbsp;h UTC).
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Renommer la version d'<code>interets.ts</code> en <code>joursInclusifs</code>, ou l'importer
+            depuis <code>dates.ts</code> avec un <code>+ 1</code> explicite à l'appel.
+          </div>
+        </div>
+      </article>
+
+      <article class="finding bas" id="F10">
+        <div class="f-code">F10</div>
+        <div class="f-body">
+          <div class="f-title">Intérêts au taux légal : année fixée à 365 jours</div>
+          <div class="f-meta">
+            <span class="chip">Faible</span>
+            <span class="f-path">src/lib/calculs/interets.ts → calculerLigneInterets()</span>
+          </div>
+          <div class="formula">interet = (base × tauxEffectif × jours) / 100 / <b>365</b></div>
+          <p>
+            Le diviseur est constant, y compris sur les années bissextiles. L'écart est de l'ordre de
+            0,27&nbsp;% sur une année bissextile complète. Le reste du module est de bonne facture&nbsp;:
+            découpage par frontières semestrielles <em>et</em> par phases, anatocisme par échéances
+            annuelles, et surtout <code>TauxLegalManquantError</code> qui refuse de calculer plutôt que
+            d'inventer un taux — exactement la bonne posture.
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Diviser par le nombre réel de jours de l'année du segment, ou documenter la convention
+            « année de 365 jours » retenue.
+          </div>
+        </div>
+      </article>
+
+      <article class="finding bas" id="F11">
+        <div class="f-code">F11</div>
+        <div class="f-body">
+          <div class="f-title">Deux codes d'avertissement déclarés mais jamais émis, une fonction mal nommée</div>
+          <div class="f-meta">
+            <span class="chip">Faible</span>
+            <span class="f-path">src/lib/calculs/avertissements.ts · postes/permanents.ts</span>
+          </div>
+          <ul>
+            <li><code>AGE_HORS_TABLE</code> et <code>DONNEE_MANQUANTE</code> figurent dans
+              <code>AvertissementCode</code> mais aucun chemin de <code>collecterAvertissements</code> ne
+              les produit. <code>AGE_HORS_TABLE</code> est précisément le code qui manquerait à
+              <a href="#F2">F2</a>.</li>
+            <li><code>esperanceRestante()</code> est commentée «&nbsp;espérance de vie utile (jours
+              restants)&nbsp;» et retourne <code>esperanceVieAnnees()</code>, donc des années. Aucun
+              appelant n'a été trouvé, mais l'écart nom / comportement est un piège.</li>
+            <li><code>calculerPGPA</code> calcule <code>joursEntre</code> dans la branche
+              «&nbsp;périodes&nbsp;» et jette le résultat, qui ne sert que de garde de validité.</li>
+          </ul>
+          <div class="f-fix"><b>Correction</b>
+            Câbler <code>AGE_HORS_TABLE</code> sur les retours hors table de <code>perViager</code>,
+            renommer <code>esperanceRestante</code> en <code>esperanceRestanteAnnees</code> ou la
+            supprimer.
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <section id="securite">
+    <div class="sec-head"><span class="sec-num">04</span><h2>Sécurité et cloisonnement</h2></div>
+    <div class="prose" style="margin-bottom:1.75rem">
+      <p>
+        Le socle est sérieux&nbsp;: RLS activée sur toutes les tables, fonctions
+        <code>SECURITY DEFINER</code> avec <code>search_path</code> figé et droits révoqués à
+        <code>anon</code>, écritures du journal réservées au <code>service_role</code>, validation
+        Zod sur chaque entrée de fonction serveur, et un client d'administration chargé
+        paresseusement pour ne jamais partir dans le bundle client. Les constats portent sur le
+        modèle de droits, pas sur l'hygiène du code.
+      </p>
+    </div>
+
+    <div class="findings">
+
+      <article class="finding haut" id="S1">
+        <div class="f-code">S1</div>
+        <div class="f-body">
+          <div class="f-title">Tout compte authentifié peut s'octroyer le droit d'éditer les référentiels globaux</div>
+          <div class="f-meta">
+            <span class="chip">Élevé</span>
+            <span class="f-path">migration 20260708083551 → can_edit_referentiels() · create_organisation()</span>
+          </div>
+          <div class="formula">CREATE FUNCTION can_edit_referentiels(_user uuid) ... AS $$
+  SELECT is_platform_admin(_user)
+      <b>OR EXISTS (SELECT 1 FROM organisation_membres WHERE user_id = _user AND role = 'admin')</b>
+$$;</div>
+          <p>
+            La condition ne teste aucune organisation en particulier&nbsp;: être administrateur de
+            <em>n'importe quel</em> cabinet suffit. Or <code>create_organisation()</code> permet à tout
+            utilisateur authentifié de créer un cabinet et l'y inscrit immédiatement comme
+            <code>admin</code>. Le chemin d'escalade est donc&nbsp;:
+          </p>
+          <div class="formula">inscription → create_organisation("X") → rôle admin
+        → can_edit_referentiels = true
+        → CRUD sur referentiels / editions / valeurs  <span class="lbl">(tables globales, partagées par tous les cabinets)</span></div>
+          <p>
+            Les tables <code>referentiels</code>, <code>editions</code> et <code>valeurs</code> ne portent
+            pas de colonne <code>organisation_id</code>&nbsp;: elles sont communes. Un administrateur d'un
+            cabinet peut donc créer une édition, y modifier un barème de capitalisation et l'activer pour
+            l'ensemble des utilisateurs de la plateforme. Il peut aussi archiver l'édition active d'un
+            autre référentiel.
+          </p>
+          <p>
+            L'impact réel est aujourd'hui nul <em>parce que</em> <a href="#F1">F1</a> déconnecte ces
+            données du moteur. Les deux constats doivent donc être traités dans le bon ordre&nbsp;:
+            corriger S1 <strong>avant</strong> F1.
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Réserver l'édition des référentiels globaux à <code>is_platform_admin</code> seul. Si les
+            cabinets doivent pouvoir dériver leurs propres valeurs, ajouter un
+            <code>organisation_id</code> nullable sur <code>editions</code> et cloisonner les politiques
+            en conséquence. Vérifier également si l'inscription publique est ouverte côté Supabase —
+            l'écran d'authentification propose «&nbsp;Créer un compte&nbsp;», ce qui étend la surface de
+            ce constat à toute personne disposant de l'URL.
+          </div>
+        </div>
+      </article>
+
+      <article class="finding moy" id="S2">
+        <div class="f-code">S2</div>
+        <div class="f-body">
+          <div class="f-title">La politique <code>dossier_editions</code> exclut les dossiers sans cabinet</div>
+          <div class="f-meta">
+            <span class="chip">Moyen</span>
+            <span class="f-path">migration 20260708083551 → policy "members access dossier_editions"</span>
+          </div>
+          <div class="formula">USING (EXISTS (SELECT 1 FROM dossiers d
+               WHERE d.id = dossier_editions.dossier_id
+                 AND <b>is_org_member(d.organisation_id, auth.uid())</b>))</div>
+          <p>
+            Toutes les autres politiques du schéma combinent deux branches —
+            <code>d.user_id = auth.uid() OR (organisation_id IS NOT NULL AND is_org_member(...))</code>.
+            Celle-ci a perdu la première. Pour un dossier personnel (<code>organisation_id IS NULL</code>),
+            <code>is_org_member(NULL, uid)</code> renvoie faux&nbsp;: le propriétaire ne peut ni lire ni
+            écrire ses propres épinglages d'éditions.
+          </p>
+          <p>
+            <code>pinCurrentEditionsForDossier</code> échoue donc silencieusement pour tout avocat
+            travaillant seul, et <code>getRecalculStatus</code> renvoie systématiquement une liste vide.
+            Le symptôme est invisible aujourd'hui, encore une fois à cause de F1.
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Aligner la politique sur les autres&nbsp;: ajouter la branche <code>d.user_id = auth.uid()</code>
+            dans <code>USING</code> et <code>WITH CHECK</code>.
+          </div>
+        </div>
+      </article>
+
+      <article class="finding moy" id="S3">
+        <div class="f-code">S3</div>
+        <div class="f-body">
+          <div class="f-title">Un dossier peut être rattaché à un cabinet dont on n'est pas membre</div>
+          <div class="f-meta">
+            <span class="chip">Moyen</span>
+            <span class="f-path">src/lib/dossiers.functions.ts → attachDossierToOrganisation · policy "Update own or org dossiers"</span>
+          </div>
+          <p>
+            La fonction serveur vérifie que l'appelant est bien propriétaire du dossier, mais jamais qu'il
+            appartient à l'organisation cible. La politique RLS ne rattrape pas&nbsp;: son
+            <code>WITH CHECK</code> est satisfait par la seule branche <code>auth.uid() = user_id</code>,
+            quel que soit le <code>organisation_id</code> écrit.
+          </p>
+          <p>
+            Conséquence&nbsp;: un utilisateur connaissant l'UUID d'un autre cabinet peut y injecter ses
+            propres dossiers, qui apparaîtront dans la liste de ce cabinet et deviendront modifiables par
+            ses membres. Il n'y a pas de lecture des données d'autrui — la fuite est dans l'autre sens —
+            mais c'est une pollution de données et une divulgation involontaire d'un dossier nominatif à
+            un tiers.
+          </p>
+          <p>
+            À signaler dans le même registre&nbsp;: la politique d'insertion de
+            <code>organisation_membres</code> autorise un administrateur à ajouter n'importe quel
+            <code>user_id</code> à son cabinet sans consentement de l'intéressé.
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Vérifier <code>is_org_member(organisationId, auth.uid())</code> dans
+            <code>attachDossierToOrganisation</code>, et durcir le <code>WITH CHECK</code> de la politique
+            en exigeant <code>organisation_id IS NULL OR is_org_member(organisation_id, auth.uid())</code>
+            sur les deux branches.
+          </div>
+        </div>
+      </article>
+
+      <article class="finding bas" id="S4">
+        <div class="f-code">S4</div>
+        <div class="f-body">
+          <div class="f-title">Journal d'audit et rôles plateforme lisibles par tout compte authentifié</div>
+          <div class="f-meta">
+            <span class="chip">Faible</span>
+            <span class="f-path">migration 20260708083551 → policies "read journal", "authenticated can read app_roles"</span>
+          </div>
+          <div class="formula">CREATE POLICY "read journal"  ON journal_audit FOR SELECT TO authenticated USING (<b>true</b>);
+CREATE POLICY "authenticated can read app_roles" ON app_roles FOR SELECT TO authenticated USING (<b>true</b>);</div>
+          <p>
+            <code>journal_audit</code> contient un champ <code>details jsonb</code> alimenté par les
+            fonctions d'édition, avec notamment les identifiants de dossiers recalculés
+            (<code>{dossierId, remplace}</code>). Tout utilisateur peut donc énumérer l'activité
+            référentielle de tous les cabinets, ainsi que la liste des administrateurs plateforme.
+            Faible en soi, mais c'est de la reconnaissance offerte à qui prépare S1.
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Restreindre la lecture de <code>journal_audit</code> à <code>can_edit_referentiels</code>
+            (une fois S1 corrigé) et celle d'<code>app_roles</code> à la ligne de l'utilisateur courant.
+          </div>
+        </div>
+      </article>
+
+      <article class="finding bas" id="S5">
+        <div class="f-code">S5</div>
+        <div class="f-body">
+          <div class="f-title"><code>.env</code> est versionné</div>
+          <div class="f-meta">
+            <span class="chip">Faible</span>
+            <span class="f-path">.env · .gitignore</span>
+          </div>
+          <p>
+            Le <code>.gitignore</code> couvre <code>*.local</code> et <code>.dev.vars</code> mais pas
+            <code>.env</code>, qui est bien présent dans l'arborescence. Son contenu actuel est inoffensif
+            — URL du projet et clé <em>publishable</em>, destinées au client — et aucune clé
+            <code>service_role</code> n'y figure&nbsp;: <code>client.server.ts</code> lit correctement
+            <code>process.env.SUPABASE_SERVICE_ROLE_KEY</code>, injecté par la plateforme.
+          </p>
+          <p>
+            Il n'y a donc pas de fuite. Le risque est celui de la prochaine variable ajoutée&nbsp;:
+            le fichier est un piège armé.
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Ajouter <code>.env</code> au <code>.gitignore</code> et fournir un <code>.env.example</code>
+            documentant les variables attendues sans valeurs.
+          </div>
+        </div>
+      </article>
+
+      <article class="finding bas" id="S6">
+        <div class="f-code">S6</div>
+        <div class="f-body">
+          <div class="f-title">Aucune validation de schéma sur le contenu d'un dossier</div>
+          <div class="f-meta">
+            <span class="chip">Faible</span>
+            <span class="f-path">src/lib/dossiers.functions.ts → updateDossier · src/lib/calculs/hydratation.ts</span>
+          </div>
+          <div class="formula">data: z.record(z.string(), z.unknown())   <span class="lbl">// tout objet JSON est accepté</span></div>
+          <p>
+            Le champ <code>data</code> accepte n'importe quel objet, sans borne de taille ni contrôle des
+            valeurs énumérées. <code>hydraterDossier</code> fait un <code>{...base, ...src}</code> qui
+            recopie telles quelles les valeurs typées&nbsp;: un <code>sexe: "H"</code> hérité d'une
+            version antérieure traverserait jusqu'à <code>BAREMES[bareme][sexe]</code>, qui renverrait
+            <code>undefined</code> et ferait échouer <code>.lignes.find()</code> — page blanche, sans
+            message exploitable.
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Décrire <code>DossierData</code> par un schéma Zod, l'appliquer en entrée d'
+            <code>updateDossier</code> et en sortie d'<code>hydraterDossier</code> avec repli sur la
+            valeur par défaut en cas d'énumération inconnue. Le schéma servirait aussi à valider les
+            imports JSON.
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <section id="couverture">
+    <div class="sec-head"><span class="sec-num">05</span><h2>Couverture du cahier des charges</h2></div>
+    <div class="prose" style="margin-bottom:1.5rem">
+      <p>
+        Poste par poste, écart entre la commande initiale et l'implémentation. Beaucoup de réductions
+        sont des choix de simplification assumés&nbsp;: les signaler ne signifie pas qu'il faut tout
+        implémenter, mais qu'il faut savoir ce que l'outil ne sait pas encore faire avant de l'utiliser
+        sur un dossier.
+      </p>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">§</th>
+            <th scope="col">Poste</th>
+            <th scope="col">État</th>
+            <th scope="col">Écart principal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="tight">7.1</td><td>Dépenses de santé actuelles — ponctuelles</td><td><span class="etat e-ok">Conforme</span></td><td>Assiette revalorisée des deux côtés (<a href="#F8">F8</a>)</td></tr>
+          <tr><td class="tight">7.2</td><td>Dépenses de santé actuelles — récurrentes</td><td><span class="etat e-part">Partiel</span></td><td>Décompte d'occurrences remplacé, champ « fréquence » absent (<a href="#F6">F6</a>)</td></tr>
+          <tr><td class="tight">7.3</td><td>ATP temporaire</td><td><span class="etat e-part">Partiel</span></td><td>Formule journalière conforme ; créance TP, périodicité et type d'assistance absents (<a href="#F4">F4</a>)</td></tr>
+          <tr><td class="tight">7.4</td><td>Frais divers de la victime</td><td><span class="etat e-ok">Conforme</span></td><td>—</td></tr>
+          <tr><td class="tight">7.5</td><td>PGPA</td><td><span class="etat e-part">Partiel</span></td><td>Avis d'imposition et pluralité de revenus absents ; pas de revenu conservé par période (<a href="#F7">F7</a>)</td></tr>
+          <tr><td class="tight">7.6</td><td>Autres postes patrimoniaux temporaires</td><td><span class="etat e-abs">Absent</span></td><td>Lignes libres non implémentées</td></tr>
+          <tr><td class="tight">8.1</td><td>Déficit fonctionnel temporaire</td><td><span class="etat e-part">Partiel</span></td><td>Agrément temporaire et préjudice sexuel temporaire par jour absents</td></tr>
+          <tr><td class="tight">8.2</td><td>Souffrances endurées</td><td><span class="etat e-red">Réduit</span></td><td>Forfait seul ; évaluation au jour absente. Fourchette Mornet ajoutée en compensation</td></tr>
+          <tr><td class="tight">8.3</td><td>Préjudice esthétique temporaire</td><td><span class="etat e-red">Réduit</span></td><td>Idem 8.2</td></tr>
+          <tr><td class="tight">8.4</td><td>Autres postes extrapatrimoniaux temporaires</td><td><span class="etat e-abs">Absent</span></td><td>Lignes libres non implémentées</td></tr>
+          <tr><td class="tight">9.1</td><td>Dépenses de santé futures</td><td><span class="etat e-part">Partiel</span></td><td>Renouvellement « tous les N ans », date de première occurrence, revalorisation et occurrences échues absents</td></tr>
+          <tr><td class="tight">9.2–9.3</td><td>Logement et véhicule adaptés</td><td><span class="etat e-part">Partiel</span></td><td>Mécanique simplifiée alignée sur 9.1</td></tr>
+          <tr><td class="tight">9.4</td><td>ATP permanente</td><td><span class="etat e-part">Partiel</span></td><td>Facteur d'annualisation divergent (<a href="#F5">F5</a>) ; périodicité absente</td></tr>
+          <tr><td class="tight">9.5</td><td>PGPF</td><td><span class="etat e-part">Partiel</span></td><td>Revenu de référence non repris des PGPA ; reliquat de créance TP vers l'IP non implémenté</td></tr>
+          <tr><td class="tight">9.6</td><td>Incidence professionnelle</td><td><span class="etat e-red">Réduit</span></td><td>Composantes détaillées remplacées par un forfait unique ; blocage « PGPF vie entière » absent</td></tr>
+          <tr><td class="tight">9.7</td><td>Préjudice scolaire / universitaire</td><td><span class="etat e-red">Réduit</span></td><td>Montant libre, sans lignes ni périodes</td></tr>
+          <tr><td class="tight">10.1</td><td>Déficit fonctionnel permanent</td><td><span class="etat e-part">Partiel</span></td><td>Méthode au point exacte (sauf <a href="#F3">F3</a>) ; méthode au jour remplacée par une saisie manuelle</td></tr>
+          <tr><td class="tight">10.2</td><td>Préjudice d'agrément</td><td><span class="etat e-red">Réduit</span></td><td>Évaluation par activité et capitalisation absentes</td></tr>
+          <tr><td class="tight">10.3–10.4</td><td>Esthétique permanent, préjudice sexuel</td><td><span class="etat e-red">Réduit</span></td><td>Forfait seul</td></tr>
+          <tr><td class="tight">10.5</td><td>Préjudice d'établissement</td><td><span class="etat e-red">Réduit</span></td><td>Perte de chance par projet absente</td></tr>
+          <tr><td class="tight">10.6–10.7</td><td>Permanent exceptionnel, pathologies évolutives</td><td><span class="etat e-ok">Conforme</span></td><td>—</td></tr>
+          <tr><td class="tight">11</td><td>Victimes indirectes — décès</td><td><span class="etat e-plus">Refondu</span></td><td>Modèle séquencé par périodes, plus rigoureux que la spec. Obsèques réduits à un montant ; affection « au jour » absente</td></tr>
+          <tr><td class="tight">12</td><td>Victimes indirectes — survie</td><td><span class="etat e-part">Partiel</span></td><td>Capitalisation viagère seule ; période échue, âge de fin et revenu de référence absents</td></tr>
+          <tr><td class="tight">13</td><td>Synthèse</td><td><span class="etat e-ok">Conforme</span></td><td>Enrichie : provisions, solde victime, contrôles d'écart TP</td></tr>
+          <tr><td class="tight">14</td><td>Liens Themia</td><td><span class="etat e-plus">Remplacé</span></td><td>Fourchettes du référentiel Mornet intégrées à l'application — dépendance externe supprimée</td></tr>
+          <tr><td class="tight">15</td><td>Tests et validation</td><td><span class="etat e-ok">Conforme</span></td><td>168 tests ; les deux valeurs de contrôle PER passent</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="prose" style="margin-top:1.75rem">
+      <h3>Fonctionnalités ajoutées au-delà de la commande</h3>
+      <ul>
+        <li><strong>Intérêts au taux légal</strong> — découpage semestriel, phases, doublement Badinter, anatocisme, refus de calculer sans taux publié.</li>
+        <li><strong>Recours des tiers payeurs</strong> — ventilation par organisme et par poste, avec détection des écarts par rapport à la synthèse.</li>
+        <li><strong>Chiffrages figés et comparateur</strong> — snapshots horodatés avec synthèse recalculée côté serveur.</li>
+        <li><strong>Cabinets multi-utilisateurs</strong> — rôles admin / avocat / assistant, partage de dossiers, journal d'activité nominatif.</li>
+        <li><strong>Référentiels versionnés</strong> — cycle éditorial complet, import CSV, épinglage par dossier. Inerte à ce jour (<a href="#F1">F1</a>).</li>
+        <li><strong>Export Word</strong> de la réclamation, à la place de l'export PDF prévu.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <section id="qualite">
+    <div class="sec-head"><span class="sec-num">06</span><h2>Qualité logicielle et outillage</h2></div>
+
+    <div class="findings">
+
+      <article class="finding moy" id="Q1">
+        <div class="f-code">Q1</div>
+        <div class="f-body">
+          <div class="f-title">Aucune vérification de types en intégration continue</div>
+          <div class="f-meta">
+            <span class="chip">Moyen</span>
+            <span class="f-path">.github/workflows/ci.yml · package.json</span>
+          </div>
+          <p>
+            La CI enchaîne <code>lint</code>, <code>test</code> et <code>build</code>. Il n'existe pas de
+            script <code>typecheck</code>, et <code>vite build</code> transpile via esbuild sans invoquer
+            <code>tsc</code>. Le <code>tsconfig.json</code> est pourtant en <code>strict: true</code> avec
+            <code>noEmit</code> — la configuration est là, mais rien ne l'exécute. Une erreur de types
+            peut atteindre la production sans qu'aucune étape ne s'y oppose.
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Ajouter <code>"typecheck": "tsc --noEmit"</code> et l'insérer dans le workflow avant le build.
+          </div>
+        </div>
+      </article>
+
+      <article class="finding moy" id="Q2">
+        <div class="f-code">Q2</div>
+        <div class="f-body">
+          <div class="f-title">Requêtes N+1 sur le journal d'activité et la liste des référentiels</div>
+          <div class="f-meta">
+            <span class="chip">Moyen</span>
+            <span class="f-path">src/lib/dossiers.functions.ts → listDossierEvents · referentiels/seed.functions.ts → listReferentielsActifs</span>
+          </div>
+          <div class="formula">for (const uid of userIds) {
+  await supabaseAdmin.auth.admin.getUserById(uid);   <span class="lbl">// un aller-retour admin par utilisateur, en série</span>
+}</div>
+          <p>
+            <code>listDossierEvents</code> lit jusqu'à 500 événements puis résout les e-mails un par un,
+            séquentiellement, via l'API d'administration. <code>listReferentielsActifs</code> exécute
+            deux requêtes par référentiel, soit 25 allers-retours pour les 12 référentiels du registre.
+            Aucun des deux n'est sur un chemin critique, mais les deux se dégraderont avec l'usage.
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Constituer une table <code>profiles</code> alimentée par trigger pour les e-mails, ou au
+            minimum paralléliser avec <code>Promise.all</code>. Pour les référentiels, joindre éditions et
+            valeurs en une requête avec <code>in()</code>.
+          </div>
+        </div>
+      </article>
+
+      <article class="finding bas" id="Q3">
+        <div class="f-code">Q3</div>
+        <div class="f-body">
+          <div class="f-title">La couverture de tests porte sur les primitives, peu sur les montants finaux</div>
+          <div class="f-meta">
+            <span class="chip">Faible</span>
+            <span class="f-path">src/lib/calculs/__tests__/ (13 fichiers, 168 tests)</span>
+          </div>
+          <p>
+            Les tests couvrent bien les briques&nbsp;: dates, fractions, répartition, annualisation,
+            indices, espérance de vie, PER sous ses quatre variantes, avec les valeurs de contrôle du
+            cahier des charges. Ce qui manque est le niveau au-dessus&nbsp;: aucun dossier complet de
+            référence dont la synthèse serait comparée à un total attendu, poste par poste — le seul
+            filet qui aurait attrapé <a href="#F3">F3</a> et <a href="#F2">F2</a>.
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Ajouter deux ou trois dossiers types en fixtures (un dossier de circulation avec tiers payeur,
+            un dossier avec victime âgée, un dossier de décès) et figer leur synthèse comme référence de
+            non-régression. C'est le meilleur rapport effort / sécurité de tout ce rapport.
+          </div>
+        </div>
+      </article>
+
+      <article class="finding bas" id="Q4">
+        <div class="f-code">Q4</div>
+        <div class="f-body">
+          <div class="f-title">Écarts assumés au fichier Excel de référence non documentés</div>
+          <div class="f-meta">
+            <span class="chip">Faible</span>
+            <span class="f-path">— (documentation absente)</span>
+          </div>
+          <p>
+            Plusieurs choix délibérés s'écartent du fichier source&nbsp;: assiette homogène des DSA
+            (<a href="#F8">F8</a>), revalorisation au milieu de période, correction volontaire de
+            l'incohérence Excel sur le facteur <code>H/365</code> de l'ATP temporaire, refonte complète du
+            calcul de perte de revenus du foyer, remplacement des liens Themia par les fourchettes Mornet.
+            Chacun est raisonnable, aucun n'est consigné hors des commentaires de code.
+          </p>
+          <p>
+            Pour un outil dont les chiffres finissent dans une réclamation, la traçabilité des écarts fait
+            partie du livrable&nbsp;: c'est ce qu'un contradicteur demandera.
+          </p>
+          <div class="f-fix"><b>Correction</b>
+            Un fichier <code>ECARTS.md</code> à la racine, une ligne par écart&nbsp;: cellule Excel
+            d'origine, formule appliquée, justification, date de la décision.
+          </div>
+        </div>
+      </article>
+
+      <article class="finding bas" id="Q5">
+        <div class="f-code">Q5</div>
+        <div class="f-body">
+          <div class="f-title">Interface et accessibilité : rien à signaler de bloquant</div>
+          <div class="f-meta">
+            <span class="chip">Faible</span>
+            <span class="f-path">src/styles.css · src/components/vp/</span>
+          </div>
+          <p>
+            La charte est correctement traduite en jetons&nbsp;: brique, ambre, vert, anthracite, ivoire,
+            filets, avec Poppins et Open Sans. <code>tabular-nums</code> est global, le focus visible est
+            homogène, la taille de saisie passe à 16&nbsp;px sur mobile pour éviter le zoom iOS, et le bloc
+            <code>@media print</code> est complet (A4, marges 15&nbsp;mm, <code>break-inside</code>,
+            en-têtes de tableau répétés). <code>LiveAnnouncer</code>, <code>useGridNav</code> et
+            <code>useUnsavedChangesGuard</code> témoignent d'une attention réelle à l'usage clavier.
+          </p>
+          <p>
+            Deux écarts au prompt d'origine — rayon de 6&nbsp;px au lieu de 16, suppression des ombres —
+            relèvent d'une refonte visuelle postérieure documentée dans
+            <code>.lovable/plan/</code>, pas d'un oubli.
+          </p>
+          <div class="f-fix"><b>Point de vigilance</b>
+            Le type <code>PeriodeDFT.taux</code> est commenté « 0 à 1 » alors que le cahier des charges
+            parle de pourcentage, et <code>calculerDFT</code> écrête à <code>Math.min(1, ...)</code>&nbsp;:
+            une saisie de « 50 » pour 50&nbsp;% produirait un DFT à 100&nbsp;%. Vérifier que l'écran de
+            saisie convertit bien, et le cas échéant refuser les valeurs &gt; 1 plutôt que les écrêter.
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <section id="plan">
+    <div class="sec-head"><span class="sec-num">07</span><h2>Plan d'action</h2></div>
+    <div class="prose" style="margin-bottom:2rem">
+      <p>
+        L'ordre compte&nbsp;: corriger <a href="#F1">F1</a> avant <a href="#S1">S1</a> reviendrait à
+        ouvrir l'accès aux barèmes de tous les cabinets. Les lots 1 et 2 sont un préalable à tout usage
+        de l'outil sur un dossier réel.
+      </p>
+    </div>
+
+    <div class="plan">
+
+      <div class="lot">
+        <div class="lot-head">
+          <span class="lot-rank">LOT 1</span>
+          <span class="lot-title">Zéros silencieux</span>
+          <span class="lot-when">Avant tout usage réel · ~1 jour</span>
+        </div>
+        <ol>
+          <li>Corriger les bornes de tranches d'<code>valeurPointAIPP</code> et couvrir les 19 intervalles par un test paramétré (<a href="#F3">F3</a>).</li>
+          <li>Faire renvoyer <code>null</code> à <code>perViager</code> / <code>perTemporaire</code> hors table, propager jusqu'à l'affichage, câbler <code>AGE_HORS_TABLE</code> (<a href="#F2">F2</a>, <a href="#F11">F11</a>).</li>
+          <li>Ajouter deux ou trois dossiers de référence en fixtures et figer leur synthèse (<a href="#Q3">Q3</a>).</li>
+        </ol>
+      </div>
+
+      <div class="lot">
+        <div class="lot-head">
+          <span class="lot-rank">LOT 2</span>
+          <span class="lot-title">Cloisonnement</span>
+          <span class="lot-when">Avant toute ouverture à d'autres cabinets · ~1 jour</span>
+        </div>
+        <ol>
+          <li>Réserver <code>can_edit_referentiels</code> à <code>is_platform_admin</code> (<a href="#S1">S1</a>).</li>
+          <li>Vérifier l'appartenance à l'organisation cible dans <code>attachDossierToOrganisation</code> et durcir le <code>WITH CHECK</code> (<a href="#S3">S3</a>).</li>
+          <li>Réparer la politique <code>dossier_editions</code> (<a href="#S2">S2</a>) et restreindre <code>journal_audit</code> / <code>app_roles</code> (<a href="#S4">S4</a>).</li>
+          <li>Sortir <code>.env</code> du dépôt (<a href="#S5">S5</a>) ; vérifier si l'inscription publique Supabase est ouverte.</li>
+        </ol>
+      </div>
+
+      <div class="lot">
+        <div class="lot-head">
+          <span class="lot-rank">LOT 3</span>
+          <span class="lot-title">Créances de tiers payeurs</span>
+          <span class="lot-when">~2 jours</span>
+        </div>
+        <ol>
+          <li>Ouvrir la créance TP sur l'ATP temporaire et la brancher sur <code>repartition()</code> (<a href="#F4">F4</a>).</li>
+          <li>Implémenter le reliquat de créance PGPF imputé sur l'incidence professionnelle (§&nbsp;9.5–9.6).</li>
+          <li>Rendre la ventilation par organisme opposable à la synthèse plutôt que seulement comparative.</li>
+        </ol>
+      </div>
+
+      <div class="lot">
+        <div class="lot-head">
+          <span class="lot-rank">LOT 4</span>
+          <span class="lot-title">Décision sur les référentiels</span>
+          <span class="lot-when">~3 à 5 jours, ou 1 heure</span>
+        </div>
+        <ol>
+          <li><strong>Option A —</strong> brancher <code>ReferentielsSource</code> jusqu'au moteur et remplacer les imports JSON directs (<a href="#F1">F1</a>).</li>
+          <li><strong>Option B —</strong> retirer l'administration des référentiels et le bandeau de recalcul de la navigation, et corriger l'en-tête mensonger de <code>recalcul.functions.ts</code>.</li>
+          <li>Dans les deux cas, ne pas laisser l'état actuel, où l'interface affirme une chose et le moteur en fait une autre.</li>
+        </ol>
+      </div>
+
+      <div class="lot">
+        <div class="lot-head">
+          <span class="lot-rank">LOT 5</span>
+          <span class="lot-title">Conventions et dette</span>
+          <span class="lot-when">~2 jours</span>
+        </div>
+        <ol>
+          <li>Fixer une convention unique de comptage des jours et l'appliquer partout (<a href="#F7">F7</a>, <a href="#F9">F9</a>).</li>
+          <li>Trancher les formules divergentes de l'ATP permanente et des DSA récurrentes (<a href="#F5">F5</a>, <a href="#F6">F6</a>).</li>
+          <li>Écrire <code>ECARTS.md</code> (<a href="#Q4">Q4</a>), ajouter <code>typecheck</code> à la CI (<a href="#Q1">Q1</a>), schéma Zod sur <code>DossierData</code> (<a href="#S6">S6</a>).</li>
+          <li>Résorber les N+1 (<a href="#Q2">Q2</a>) et vérifier l'unité de <code>PeriodeDFT.taux</code> (<a href="#Q5">Q5</a>).</li>
+        </ol>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      Audit réalisé le 10 septembre 2026 sur le commit <span class="mono">20a7408f</span> du projet
+      Lovable <span class="mono">d8b84fbc-40cd-40a8-8366-d405b3cb6c21</span>. Analyse statique du code
+      source et des politiques RLS&nbsp;; aucun test d'intrusion ni exécution de la suite de tests.
+    </p>
+    <p>
+      Les appréciations juridiques figurant dans ce document portent sur la conformité du code à son
+      cahier des charges, non sur la pertinence juridique des méthodes d'évaluation retenues, qui relève
+      de l'avocat.
+    </p>
+  </footer>
+
+</div>
