@@ -1,0 +1,1495 @@
+Attribute VB_Name = "VP_Candidatures"
+Option Explicit
+'=====================================================================
+'  CABINET VICTIMES & PREJUDICES - GESTION DES CANDIDATURES
+'  Module d'automatisation Outlook et Word
+'
+'  Installation :
+'     1. Enregistrer le classeur au format .xlsm
+'     2. Alt + F11, menu Fichier > Importer un fichier > ce module
+'     3. Menu Execution > Executer Sub/UserForm > "Installer"
+'
+'  Liaison tardive : aucune reference VBA a activer.
+'=====================================================================
+
+Private Const SH_CAND As String = "Candidatures"
+Private Const SH_ENTR As String = "Entretiens"
+Private Const SH_JOUR As String = "Journal"
+Private Const SH_MOD  As String = "Modèles e-mails"
+Private Const SH_PAR  As String = "Paramètres"
+Private Const SH_ACC  As String = "Accueil"
+
+Private Const ENTETE_CAND As Long = 4     ' ligne des en-tetes, onglet Candidatures
+Private Const ENTETE_ENTR As Long = 3     ' ligne des en-tetes, onglet Entretiens
+Private Const ENTETE_JOUR As Long = 3
+Private Const PREFIXE_BTN As String = "VPBTN_"
+
+' couleurs de la charte
+Private Const C_BLEU As Long = 5977362      ' RGB(18, 53, 91)  -> BGR
+Private Const C_BLEU2 As Long = 9068332
+Private Const C_OR As Long = 2789816
+Private Const C_GRIS As Long = 8088410
+Private Const C_ROUGE As Long = 3029680
+
+'=====================================================================
+'  OUTILS GENERAUX
+'=====================================================================
+
+Private Function Classeur() As Workbook
+    Set Classeur = ThisWorkbook
+End Function
+
+Private Function Feuille(ByVal nom As String) As Worksheet
+    On Error Resume Next
+    Set Feuille = ThisWorkbook.Worksheets(nom)
+    On Error GoTo 0
+    If Feuille Is Nothing Then
+        MsgBox "L'onglet " & Chr(171) & " " & nom & " " & Chr(187) & " est introuvable." & vbCrLf & _
+               "Il a peut-etre ete renomme ou supprime.", vbCritical, "Gestion des candidatures"
+    End If
+End Function
+
+' Valeur d'un parametre nomme de l'onglet Parametres
+Private Function Param(ByVal nom As String) As Variant
+    On Error GoTo defaut
+    Param = ThisWorkbook.Names(nom).RefersToRange.Value
+    Exit Function
+defaut:
+    Param = ""
+End Function
+
+Private Function ParamTxt(ByVal nom As String) As String
+    Dim v As Variant
+    v = Param(nom)
+    If IsError(v) Or IsEmpty(v) Then
+        ParamTxt = ""
+    Else
+        ParamTxt = Trim$(CStr(v))
+    End If
+End Function
+
+Private Function ParamNum(ByVal nom As String, ByVal defaut As Double) As Double
+    Dim v As Variant
+    v = Param(nom)
+    If IsNumeric(v) Then ParamNum = CDbl(v) Else ParamNum = defaut
+End Function
+
+' Index de colonne a partir du libelle d'en-tete (insensible a la casse)
+Private Function ColIdx(ByVal ws As Worksheet, ByVal entete As String, ByVal ligneEntete As Long) As Long
+    Dim c As Long, derC As Long, t As String
+    derC = ws.Cells(ligneEntete, ws.Columns.Count).End(xlToLeft).Column
+    For c = 1 To derC
+        t = Trim$(CStr(ws.Cells(ligneEntete, c).Value))
+        If StrComp(t, entete, vbTextCompare) = 0 Then
+            ColIdx = c
+            Exit Function
+        End If
+    Next c
+    ColIdx = 0
+End Function
+
+Private Function Val_(ByVal ligne As Long, ByVal entete As String) As Variant
+    Dim ws As Worksheet, c As Long
+    Set ws = Feuille(SH_CAND)
+    c = ColIdx(ws, entete, ENTETE_CAND)
+    If c = 0 Then Val_ = "" Else Val_ = ws.Cells(ligne, c).Value
+End Function
+
+Private Function Txt_(ByVal ligne As Long, ByVal entete As String) As String
+    Dim v As Variant
+    v = Val_(ligne, entete)
+    If IsEmpty(v) Or IsError(v) Then Txt_ = "" Else Txt_ = Trim$(CStr(v))
+End Function
+
+Private Sub Ecrire(ByVal ligne As Long, ByVal entete As String, ByVal valeur As Variant)
+    Dim ws As Worksheet, c As Long
+    Set ws = Feuille(SH_CAND)
+    c = ColIdx(ws, entete, ENTETE_CAND)
+    If c > 0 Then ws.Cells(ligne, c).Value = valeur
+End Sub
+
+Private Function DerniereLigne(ByVal ws As Worksheet, ByVal ligneEntete As Long) As Long
+    Dim r As Long
+    r = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    If r < ligneEntete Then r = ligneEntete
+    DerniereLigne = r
+End Function
+
+' Derniere ligne reellement renseignee (colonne ID)
+Private Function DerniereCandidature() As Long
+    Dim ws As Worksheet, r As Long, colID As Long
+    Set ws = Feuille(SH_CAND)
+    colID = ColIdx(ws, "ID", ENTETE_CAND)
+    r = ws.Cells(ws.Rows.Count, colID).End(xlUp).Row
+    If r < ENTETE_CAND Then r = ENTETE_CAND
+    DerniereCandidature = r
+End Function
+
+Private Function JJMMAAAA(ByVal v As Variant) As String
+    If IsDate(v) Then JJMMAAAA = Format$(v, "dd/mm/yyyy") Else JJMMAAAA = ""
+End Function
+
+Private Function FmtLong(ByVal v As Variant) As String
+    If IsDate(v) Then
+        FmtLong = Format$(v, "dddd d mmmm yyyy")
+    Else
+        FmtLong = ""
+    End If
+End Function
+
+' Ligne de candidature sur laquelle agir : la derniere cellule
+' selectionnee dans l'onglet Candidatures.
+Private Function LigneCandidat(Optional ByVal silencieux As Boolean = False) As Long
+    Dim ws As Worksheet, r As Long
+    Set ws = Feuille(SH_CAND)
+    If ws Is Nothing Then Exit Function
+    If ActiveSheet.Name <> ws.Name Then ws.Activate   ' restaure la derniere cellule selectionnee
+    r = ActiveCell.Row
+    If r <= ENTETE_CAND Then
+        If Not silencieux Then
+            MsgBox "Selectionnez d'abord une ligne de candidature dans l'onglet " & _
+                   Chr(171) & " Candidatures " & Chr(187) & ".", vbExclamation, "Aucune ligne selectionnee"
+        End If
+        LigneCandidat = 0
+        Exit Function
+    End If
+    If Len(Txt_(r, "ID")) = 0 Then
+        If Not silencieux Then
+            MsgBox "La ligne " & r & " ne contient aucune candidature." & vbCrLf & _
+                   "Selectionnez une ligne renseignee, ou cliquez sur " & Chr(171) & _
+                   " Nouvelle candidature " & Chr(187) & ".", vbExclamation, "Ligne vide"
+        End If
+        LigneCandidat = 0
+        Exit Function
+    End If
+    LigneCandidat = r
+End Function
+
+Private Function NomComplet(ByVal ligne As Long) As String
+    NomComplet = Trim$(Txt_(ligne, "Nom") & " " & Txt_(ligne, "Prénom"))
+End Function
+
+'=====================================================================
+'  JOURNAL
+'=====================================================================
+Private Sub Journaliser(ByVal idCand As String, ByVal candidat As String, _
+                        ByVal action As String, ByVal detail As String, ByVal resultat As String)
+    Dim ws As Worksheet, r As Long
+    On Error Resume Next
+    Set ws = ThisWorkbook.Worksheets(SH_JOUR)
+    If ws Is Nothing Then Exit Sub
+    r = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row + 1
+    If r <= ENTETE_JOUR Then r = ENTETE_JOUR + 1
+    ws.Cells(r, 1).Value = Now
+    ws.Cells(r, 1).NumberFormat = "dd/mm/yyyy hh:mm"
+    ws.Cells(r, 2).Value = Application.UserName
+    ws.Cells(r, 3).Value = idCand
+    ws.Cells(r, 4).Value = candidat
+    ws.Cells(r, 5).Value = action
+    ws.Cells(r, 6).Value = detail
+    ws.Cells(r, 7).Value = resultat
+    On Error GoTo 0
+End Sub
+
+'=====================================================================
+'  DOSSIERS
+'=====================================================================
+Private Sub CreerArborescence(ByVal chemin As String)
+    Dim parties() As String, cumul As String, i As Long
+    If Len(chemin) = 0 Then Exit Sub
+    chemin = Replace(chemin, "/", "\")
+    parties = Split(chemin, "\")
+    For i = LBound(parties) To UBound(parties)
+        If i = LBound(parties) Then
+            cumul = parties(i)
+        Else
+            cumul = cumul & "\" & parties(i)
+        End If
+        If Len(cumul) > 3 And InStr(cumul, "\") > 0 Then
+            If Dir(cumul, vbDirectory) = "" Then
+                On Error Resume Next
+                MkDir cumul
+                On Error GoTo 0
+            End If
+        End If
+    Next i
+End Sub
+
+' Chemin du dossier du candidat ; le cree si demande
+Private Function DossierCandidat(ByVal ligne As Long, ByVal creer As Boolean) As String
+    Dim racine As String, nom As String, chemin As String, existant As String
+    existant = Txt_(ligne, "Dossier candidat")
+    If Len(existant) > 0 Then
+        If Dir(existant, vbDirectory) <> "" Then
+            DossierCandidat = existant
+            Exit Function
+        End If
+    End If
+    racine = ParamTxt("DossierCandidats")
+    If Len(racine) = 0 Then racine = ThisWorkbook.Path & "\Candidats"
+    If Right$(racine, 1) = "\" Then racine = Left$(racine, Len(racine) - 1)
+    nom = Txt_(ligne, "ID") & "_" & Txt_(ligne, "Nom") & "_" & Txt_(ligne, "Prénom")
+    nom = NettoyerNomFichier(nom)
+    chemin = racine & "\" & nom
+    If creer Then
+        CreerArborescence chemin
+        If Dir(chemin, vbDirectory) <> "" Then Ecrire ligne, "Dossier candidat", chemin
+    End If
+    DossierCandidat = chemin
+End Function
+
+Private Function NettoyerNomFichier(ByVal s As String) As String
+    Dim interdits As Variant, i As Long
+    interdits = Array("\", "/", ":", "*", "?", """", "<", ">", "|", vbTab, vbCr, vbLf)
+    For i = LBound(interdits) To UBound(interdits)
+        s = Replace(s, interdits(i), "-")
+    Next i
+    Do While InStr(s, "  ") > 0
+        s = Replace(s, "  ", " ")
+    Loop
+    NettoyerNomFichier = Trim$(s)
+End Function
+
+'=====================================================================
+'  BALISES {{...}}
+'=====================================================================
+' Construit le tableau des balises a partir d'une ligne de candidature.
+' Recupere les modalites du dernier entretien enregistre pour un candidat
+Private Sub InfosEntretien(ByVal idCand As String, ByRef sType As String, _
+                           ByRef sLieu As String, ByRef sDuree As String)
+    Dim ws As Worksheet, r As Long, der As Long
+    sType = "": sLieu = "": sDuree = ""
+    On Error Resume Next
+    Set ws = ThisWorkbook.Worksheets(SH_ENTR)
+    On Error GoTo 0
+    If ws Is Nothing Or Len(idCand) = 0 Then Exit Sub
+    der = ws.Cells(ws.Rows.Count, 2).End(xlUp).Row
+    For r = ENTETE_ENTR + 1 To der
+        If StrComp(Trim$(CStr(ws.Cells(r, 2).Value)), idCand, vbTextCompare) = 0 Then
+            sDuree = CStr(ws.Cells(r, 7).Value)
+            sType = CStr(ws.Cells(r, 8).Value)
+            sLieu = CStr(ws.Cells(r, 9).Value)
+        End If
+    Next r
+End Sub
+
+Private Function Balises(ByVal ligne As Long) As Variant
+    Dim b(1 To 34, 1 To 2) As String, n As Long
+    Dim civ As String, eType As String, eLieu As String, eDuree As String
+    InfosEntretien Txt_(ligne, "ID"), eType, eLieu, eDuree
+    civ = Txt_(ligne, "Civilité")
+    If Len(civ) = 0 Then civ = "Madame, Monsieur"
+
+    n = 1:  b(n, 1) = "{{CIVILITE}}":            b(n, 2) = civ
+    n = 2:  b(n, 1) = "{{NOM}}":                 b(n, 2) = Txt_(ligne, "Nom")
+    n = 3:  b(n, 1) = "{{PRENOM}}":              b(n, 2) = Txt_(ligne, "Prénom")
+    n = 4:  b(n, 1) = "{{POSTE}}":               b(n, 2) = Txt_(ligne, "Poste visé")
+    n = 5:  b(n, 1) = "{{ID}}":                  b(n, 2) = Txt_(ligne, "ID")
+    n = 6:  b(n, 1) = "{{DATE_RECEPTION}}":      b(n, 2) = JJMMAAAA(Val_(ligne, "Date réception"))
+    n = 7:  b(n, 1) = "{{DATE_DERNIER_CONTACT}}": b(n, 2) = JJMMAAAA(Val_(ligne, "Date dernier contact"))
+    n = 8:  b(n, 1) = "{{DATE_ENTRETIEN}}":      b(n, 2) = FmtLong(Val_(ligne, "Date entretien"))
+    n = 9:  b(n, 1) = "{{HEURE_ENTRETIEN}}":     b(n, 2) = HeureEntretien(ligne)
+    n = 10: b(n, 1) = "{{RESPONSABLE}}":         b(n, 2) = Txt_(ligne, "Responsable")
+    n = 11: b(n, 1) = "{{EMAIL}}":               b(n, 2) = Txt_(ligne, "E-mail")
+    n = 12: b(n, 1) = "{{TELEPHONE_CANDIDAT}}":  b(n, 2) = Txt_(ligne, "Téléphone")
+    n = 13: b(n, 1) = "{{VILLE}}":               b(n, 2) = Txt_(ligne, "Ville")
+    n = 14: b(n, 1) = "{{SOURCE}}":              b(n, 2) = Txt_(ligne, "Source")
+    n = 15: b(n, 1) = "{{EXPERIENCE}}":          b(n, 2) = Txt_(ligne, "Expérience (ans)")
+    n = 16: b(n, 1) = "{{DIPLOME}}":             b(n, 2) = Txt_(ligne, "Diplôme / École")
+    n = 17: b(n, 1) = "{{CAPA}}":                b(n, 2) = Txt_(ligne, "CAPA / CRFPA")
+    n = 18: b(n, 1) = "{{DISPONIBILITE}}":       b(n, 2) = JJMMAAAA(Val_(ligne, "Disponibilité"))
+    n = 19: b(n, 1) = "{{PRETENTIONS}}":         b(n, 2) = Txt_(ligne, "Prétentions (€)")
+    n = 20: b(n, 1) = "{{EVALUATION}}":          b(n, 2) = Txt_(ligne, "Éval. /5")
+    n = 21: b(n, 1) = "{{MOTIF}}":               b(n, 2) = Txt_(ligne, "Motif (si refus)")
+    n = 22: b(n, 1) = "{{COMMENTAIRES}}":        b(n, 2) = Txt_(ligne, "Commentaires")
+    n = 23: b(n, 1) = "{{CABINET}}":             b(n, 2) = ParamTxt("NomCabinet")
+    n = 24: b(n, 1) = "{{ADRESSE}}":             b(n, 2) = ParamTxt("AdresseCabinet")
+    n = 25: b(n, 1) = "{{TELEPHONE}}":           b(n, 2) = ParamTxt("TelCabinet")
+    n = 26: b(n, 1) = "{{EMAIL_RH}}":            b(n, 2) = ParamTxt("EmailRH")
+    n = 27: b(n, 1) = "{{SITE}}":                b(n, 2) = ParamTxt("SiteWeb")
+    n = 28: b(n, 1) = "{{SIGNATAIRE}}":          b(n, 2) = ParamTxt("Signataire")
+    n = 29: b(n, 1) = "{{FONCTION}}":            b(n, 2) = ParamTxt("FonctionSignataire")
+    n = 30: b(n, 1) = "{{DUREE_CONSERVATION}}":  b(n, 2) = CStr(CLng(ParamNum("DureeConservation", 2)))
+    n = 31: b(n, 1) = "{{TYPE_ENTRETIEN}}":       b(n, 2) = eType
+    n = 32: b(n, 1) = "{{LIEU_ENTRETIEN}}":       b(n, 2) = eLieu
+    n = 33: b(n, 1) = "{{DUREE_ENTRETIEN}}":      b(n, 2) = eDuree
+    n = 34: b(n, 1) = "{{CIVILITE_LONGUE}}":      b(n, 2) = CiviliteLongue(Txt_(ligne, "Civilité"))
+    Balises = b
+End Function
+
+' Appel des courriers : "Madame", "Monsieur", a defaut "Madame, Monsieur"
+Private Function CiviliteLongue(ByVal civ As String) As String
+    civ = UCase$(Trim$(civ))
+    If Left$(civ, 3) = "MME" Then
+        CiviliteLongue = "Madame"
+    ElseIf Left$(civ, 1) = "M" Then
+        CiviliteLongue = "Monsieur"
+    Else
+        CiviliteLongue = "Madame, Monsieur"
+    End If
+End Function
+
+Private Function HeureEntretien(ByVal ligne As Long) As String
+    Dim v As Variant
+    v = Val_(ligne, "Date entretien")
+    If IsDate(v) Then
+        HeureEntretien = Format$(v, "hh:mm")
+    Else
+        HeureEntretien = ""
+    End If
+End Function
+
+Private Function AppliquerBalises(ByVal texte As String, ByVal b As Variant) As String
+    Dim i As Long
+    For i = LBound(b, 1) To UBound(b, 1)
+        If Len(b(i, 1)) > 0 Then texte = Replace(texte, b(i, 1), b(i, 2))
+    Next i
+    ' balises complementaires communes
+    texte = Replace(texte, "{{DATE_DU_JOUR}}", Format$(Date, "dd/mm/yyyy"))
+    texte = Replace(texte, "{{SIGNATURE}}", ParamTxt("SignatureEmail"))
+    AppliquerBalises = texte
+End Function
+
+' Bloc de signature construit depuis l'onglet Parametres.
+' Vide si le parametre "Signature e-mail" n'est pas renseigne : la
+' signature Outlook par defaut prend alors le relais.
+Private Function BlocSignature() As String
+    Dim s As String, l As String
+    s = ParamTxt("SignatureEmail")
+    If Len(s) = 0 Then
+        BlocSignature = ""
+        Exit Function
+    End If
+    l = s
+    If Len(ParamTxt("Signataire")) > 0 Then l = l & vbCrLf & ParamTxt("Signataire")
+    If Len(ParamTxt("FonctionSignataire")) > 0 Then l = l & vbCrLf & ParamTxt("FonctionSignataire")
+    If Len(ParamTxt("NomCabinet")) > 0 Then l = l & vbCrLf & ParamTxt("NomCabinet")
+    If Len(ParamTxt("AdresseCabinet")) > 0 Then l = l & vbCrLf & ParamTxt("AdresseCabinet")
+    If Len(ParamTxt("TelCabinet")) > 0 Then l = l & vbCrLf & "Tel. " & ParamTxt("TelCabinet") & _
+        IIf(Len(ParamTxt("EmailRH")) > 0, " - " & ParamTxt("EmailRH"), "")
+    If Len(ParamTxt("SiteWeb")) > 0 Then l = l & vbCrLf & ParamTxt("SiteWeb")
+    BlocSignature = l
+End Function
+
+Private Function StatutN(ByVal n As Long) As String
+    On Error GoTo defaut
+    StatutN = CStr(ThisWorkbook.Names("StatutListe").RefersToRange.Cells(n, 1).Value)
+    Exit Function
+defaut:
+    StatutN = ""
+End Function
+
+'=====================================================================
+'  MODELES D'E-MAILS
+'=====================================================================
+Private Function LireModele(ByVal cle As String, ByRef objet As String, _
+                            ByRef corps As String, ByRef pj As String) As Boolean
+    Dim ws As Worksheet, r As Long, der As Long
+    Set ws = Feuille(SH_MOD)
+    If ws Is Nothing Then Exit Function
+    der = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    For r = 4 To der
+        If StrComp(Trim$(CStr(ws.Cells(r, 1).Value)), cle, vbTextCompare) = 0 Then
+            objet = CStr(ws.Cells(r, 3).Value)
+            corps = CStr(ws.Cells(r, 4).Value)
+            pj = Trim$(CStr(ws.Cells(r, 5).Value))
+            LireModele = True
+            Exit Function
+        End If
+    Next r
+    MsgBox "Le modele " & Chr(171) & " " & cle & " " & Chr(187) & " est introuvable dans l'onglet " & _
+           Chr(171) & " " & SH_MOD & " " & Chr(187) & ".", vbExclamation, "Modele manquant"
+End Function
+
+Private Function TexteVersHtml(ByVal s As String) As String
+    s = Replace(s, "&", "&amp;")
+    s = Replace(s, "<", "&lt;")
+    s = Replace(s, ">", "&gt;")
+    s = Replace(s, vbCrLf, vbLf)
+    s = Replace(s, vbCr, vbLf)
+    s = Replace(s, vbLf, "<br>")
+    TexteVersHtml = "<div style=""font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#1F2933"">" & _
+                    s & "</div>"
+End Function
+
+'=====================================================================
+'  OUTLOOK
+'=====================================================================
+Private Function Outlook_() As Object
+    On Error Resume Next
+    Set Outlook_ = GetObject(, "Outlook.Application")
+    If Outlook_ Is Nothing Then Set Outlook_ = CreateObject("Outlook.Application")
+    On Error GoTo 0
+    If Outlook_ Is Nothing Then
+        MsgBox "Outlook n'a pas pu etre demarre." & vbCrLf & vbCrLf & _
+               "Verifiez qu'Outlook est installe sur ce poste et qu'un profil de messagerie " & _
+               "est configure. La version web d'Outlook ne permet pas cette automatisation.", _
+               vbCritical, "Outlook indisponible"
+    End If
+End Function
+
+' Envoi d'un modele d'e-mail a un candidat.
+Private Function EnvoyerModele(ByVal ligne As Long, ByVal cle As String, _
+                               ByVal libelleAction As String, _
+                               Optional ByVal confirmer As Boolean = True, _
+                               Optional ByVal statutApres As Long = 0) As Boolean
+    Dim objet As String, corps As String, pj As String
+    Dim b As Variant, OL As Object, mail As Object
+    Dim adresse As String, sig As String, direct As Boolean
+
+    adresse = Txt_(ligne, "E-mail")
+    If Len(adresse) = 0 Then
+        MsgBox "Aucune adresse e-mail n'est renseignee pour " & NomComplet(ligne) & ".", _
+               vbExclamation, libelleAction
+        Exit Function
+    End If
+    If Not LireModele(cle, objet, corps, pj) Then Exit Function
+
+    b = Balises(ligne)
+    objet = AppliquerBalises(objet, b)
+    corps = AppliquerBalises(corps, b)
+    corps = Replace(corps, "{{SIGNATURE_BLOC}}", BlocSignature())
+
+    If confirmer Then
+        If MsgBox(libelleAction & vbCrLf & vbCrLf & _
+                  "Destinataire : " & NomComplet(ligne) & vbCrLf & _
+                  "Adresse      : " & adresse & vbCrLf & _
+                  "Objet        : " & objet & vbCrLf & vbCrLf & _
+                  "Continuer ?", vbQuestion + vbOKCancel, "Gestion des candidatures") <> vbOK Then
+            Exit Function
+        End If
+    End If
+
+    Set OL = Outlook_()
+    If OL Is Nothing Then Exit Function
+    direct = (InStr(1, ParamTxt("ModeEnvoi"), "direct", vbTextCompare) > 0)
+
+    On Error GoTo echec
+    Set mail = OL.CreateItem(0)                       ' olMailItem
+    mail.To = adresse
+    mail.Subject = objet
+    mail.GetInspector                                 ' charge la signature Outlook
+    sig = mail.HTMLBody
+    If Len(BlocSignature()) > 0 Then sig = ""         ' signature geree par le classeur
+    mail.HTMLBody = TexteVersHtml(corps) & sig
+    If Len(pj) > 0 Then
+        If Dir(pj) <> "" Then mail.Attachments.Add pj
+    End If
+    If direct Then
+        mail.Send
+    Else
+        mail.Display
+    End If
+    On Error GoTo 0
+
+    Ecrire ligne, "Date dernier contact", Date
+    If statutApres > 0 Then Ecrire ligne, "Statut", StatutN(statutApres)
+    Journaliser Txt_(ligne, "ID"), NomComplet(ligne), libelleAction, _
+                "E-mail " & IIf(direct, "envoye", "prepare") & " a " & adresse, "OK"
+    EnvoyerModele = True
+    Exit Function
+echec:
+    MsgBox "L'e-mail n'a pas pu etre prepare." & vbCrLf & "Detail : " & Err.Description, _
+           vbCritical, libelleAction
+    Journaliser Txt_(ligne, "ID"), NomComplet(ligne), libelleAction, Err.Description, "ECHEC"
+End Function
+
+'=====================================================================
+'  ACTIONS OUTLOOK - BOUTONS
+'=====================================================================
+Public Sub AccuserReception()
+    Dim r As Long
+    r = LigneCandidat()
+    If r = 0 Then Exit Sub
+    EnvoyerModele r, "ACCUSE_RECEPTION", "Accuse de reception", True, 2
+End Sub
+
+Public Sub DemanderPieces()
+    Dim r As Long
+    r = LigneCandidat()
+    If r = 0 Then Exit Sub
+    If EnvoyerModele(r, "DEMANDE_PIECES", "Demande de pieces complementaires", True, 3) Then
+        Ecrire r, "Prochaine action", "Relancer le candidat"
+        Ecrire r, "Date prochaine action", Date + CLng(ParamNum("SeuilRelance", 21))
+    End If
+End Sub
+
+Public Sub MettreEnVivier()
+    Dim r As Long
+    r = LigneCandidat()
+    If r = 0 Then Exit Sub
+    If EnvoyerModele(r, "VIVIER", "Mise en vivier", True, 6) Then
+        Ecrire r, "Décision", "Vivier"
+        Ecrire r, "Consentement vivier", "Oui"
+    End If
+End Sub
+
+Public Sub EnvoyerProposition()
+    Dim r As Long
+    r = LigneCandidat()
+    If r = 0 Then Exit Sub
+    If EnvoyerModele(r, "PROPOSITION", "Proposition / suite favorable", True, 7) Then
+        Ecrire r, "Décision", "Favorable"
+    End If
+End Sub
+
+Public Sub EnvoyerRefus()
+    Dim r As Long, motif As String
+    r = LigneCandidat()
+    If r = 0 Then Exit Sub
+    motif = Txt_(r, "Motif (si refus)")
+    If Len(motif) = 0 Then
+        motif = InputBox("Motif du refus (pour votre suivi interne ; il n'apparait pas dans l'e-mail) :", _
+                         "Reponse negative", "Profil non adapte au poste")
+        If StrPtr(motif) = 0 Then Exit Sub
+    End If
+    If EnvoyerModele(r, "REFUS", "Reponse negative", True, 9) Then
+        If Len(motif) > 0 Then Ecrire r, "Motif (si refus)", motif
+        Ecrire r, "Décision", "Défavorable"
+        Ecrire r, "Prochaine action", ""
+        Ecrire r, "Date prochaine action", ""
+    End If
+End Sub
+
+' Envoi du meme modele a toutes les lignes selectionnees
+Public Sub EnvoiGroupe()
+    Dim ws As Worksheet, zone As Range, l As Range
+    Dim lignes() As Long, n As Long, i As Long
+    Dim cle As String, choix As String, nb As Long
+
+    Set ws = Feuille(SH_CAND)
+    If ActiveSheet.Name <> ws.Name Then ws.Activate
+    Set zone = Selection
+    If zone Is Nothing Then Exit Sub
+
+    ReDim lignes(1 To 500)
+    For Each l In zone.Rows
+        If l.Row > ENTETE_CAND Then
+            If Len(Txt_(l.Row, "ID")) > 0 And Len(Txt_(l.Row, "E-mail")) > 0 Then
+                n = n + 1
+                If n > 500 Then Exit For
+                lignes(n) = l.Row
+            End If
+        End If
+    Next l
+    If n = 0 Then
+        MsgBox "Selectionnez d'abord les lignes concernees (colonne quelconque)." & vbCrLf & _
+               "Astuce : filtrez le tableau, puis selectionnez les lignes visibles.", _
+               vbExclamation, "Envoi groupe"
+        Exit Sub
+    End If
+
+    choix = InputBox("Modele a envoyer aux " & n & " candidat(s) selectionne(s) :" & vbCrLf & vbCrLf & _
+                     "1 - Accuse de reception" & vbCrLf & _
+                     "2 - Demande de pieces" & vbCrLf & _
+                     "3 - Mise en vivier" & vbCrLf & _
+                     "4 - Reponse negative" & vbCrLf & vbCrLf & _
+                     "Saisissez le numero :", "Envoi groupe", "4")
+    If StrPtr(choix) = 0 Or Len(choix) = 0 Then Exit Sub
+    Select Case Trim$(choix)
+        Case "1": cle = "ACCUSE_RECEPTION"
+        Case "2": cle = "DEMANDE_PIECES"
+        Case "3": cle = "VIVIER"
+        Case "4": cle = "REFUS"
+        Case Else
+            MsgBox "Numero de modele non reconnu.", vbExclamation, "Envoi groupe"
+            Exit Sub
+    End Select
+
+    If MsgBox("Preparer " & n & " e-mail(s) " & Chr(171) & " " & cle & " " & Chr(187) & " ?" & vbCrLf & vbCrLf & _
+              "Mode d'envoi actuel : " & ParamTxt("ModeEnvoi") & "." & vbCrLf & _
+              "Cette operation peut prendre quelques instants.", _
+              vbQuestion + vbOKCancel, "Envoi groupe") <> vbOK Then Exit Sub
+
+    Application.ScreenUpdating = False
+    For i = 1 To n
+        If EnvoyerModele(lignes(i), cle, "Envoi groupe", False, _
+                         IIf(cle = "REFUS", 9, IIf(cle = "VIVIER", 6, 0))) Then nb = nb + 1
+    Next i
+    Application.ScreenUpdating = True
+    MsgBox nb & " e-mail(s) traite(s) sur " & n & ".", vbInformation, "Envoi groupe"
+End Sub
+
+'=====================================================================
+'  ENTRETIENS
+'=====================================================================
+Public Sub PlanifierEntretien()
+    Dim r As Long, sDate As String, sHeure As String, sDuree As String
+    Dim sType As String, sLieu As String, dt As Date, duree As Long
+    Dim ws As Worksheet, lr As Long, OL As Object, apt As Object
+    Dim inviter As VbMsgBoxResult
+
+    r = LigneCandidat()
+    If r = 0 Then Exit Sub
+
+    sDate = InputBox("Date de l'entretien (jj/mm/aaaa) :", "Planifier un entretien", _
+                     Format$(Date + 7, "dd/mm/yyyy"))
+    If StrPtr(sDate) = 0 Or Len(Trim$(sDate)) = 0 Then Exit Sub
+    sHeure = InputBox("Heure de l'entretien (hh:mm) :", "Planifier un entretien", "10:00")
+    If StrPtr(sHeure) = 0 Or Len(Trim$(sHeure)) = 0 Then Exit Sub
+    If Not IsDate(sDate & " " & sHeure) Then
+        MsgBox "Date ou heure non reconnue. Format attendu : 15/10/2026 et 10:00.", _
+               vbExclamation, "Planifier un entretien"
+        Exit Sub
+    End If
+    dt = CDate(sDate & " " & sHeure)
+    sDuree = InputBox("Duree en minutes :", "Planifier un entretien", "45")
+    If StrPtr(sDuree) = 0 Then Exit Sub
+    duree = CLng(Val(sDuree))
+    If duree <= 0 Then duree = 45
+    sType = InputBox("Modalite : Au cabinet / Visioconference / Telephone", _
+                     "Planifier un entretien", "Au cabinet")
+    If StrPtr(sType) = 0 Then Exit Sub
+    sLieu = InputBox("Lieu de l'entretien ou lien de connexion :", "Planifier un entretien", _
+                     ParamTxt("AdresseCabinet"))
+    If StrPtr(sLieu) = 0 Then Exit Sub
+
+    ' 1. mise a jour de la candidature
+    Ecrire r, "Date entretien", dt
+    Ecrire r, "Statut", StatutN(4)
+    Ecrire r, "Prochaine action", "Second entretien"
+    Ecrire r, "Date prochaine action", Int(dt) + 1
+
+    ' 2. ligne dans l'onglet Entretiens
+    Set ws = Feuille(SH_ENTR)
+    If Not ws Is Nothing Then
+        lr = ws.Cells(ws.Rows.Count, 2).End(xlUp).Row + 1
+        If lr <= ENTETE_ENTR Then lr = ENTETE_ENTR + 1
+        ws.Cells(lr, 1).Value = "ENT-" & Format$(Now, "yyyymmdd-hhnn")
+        ws.Cells(lr, 2).Value = Txt_(r, "ID")
+        ws.Cells(lr, 5).Value = Int(dt)
+        ws.Cells(lr, 5).NumberFormat = "dd/mm/yyyy"
+        ws.Cells(lr, 6).Value = dt - Int(dt)
+        ws.Cells(lr, 6).NumberFormat = "hh:mm"
+        ws.Cells(lr, 7).Value = duree
+        ws.Cells(lr, 8).Value = sType
+        ws.Cells(lr, 9).Value = sLieu
+        ws.Cells(lr, 10).Value = Txt_(r, "Responsable")
+        ws.Cells(lr, 11).Value = "Planifié"
+    End If
+
+    ' 3. rendez-vous Outlook
+    inviter = MsgBox("Creer le rendez-vous dans Outlook ?" & vbCrLf & vbCrLf & _
+                     "Oui  : rendez-vous avec invitation envoyee au candidat" & vbCrLf & _
+                     "Non  : rendez-vous dans votre agenda uniquement" & vbCrLf & _
+                     "Annuler : aucun rendez-vous", vbQuestion + vbYesNoCancel, "Agenda Outlook")
+    If inviter <> vbCancel Then
+        Set OL = Outlook_()
+        If Not OL Is Nothing Then
+            On Error Resume Next
+            Set apt = OL.CreateItem(1)                ' olAppointmentItem
+            apt.Subject = "Entretien de recrutement - " & NomComplet(r) & " - " & Txt_(r, "Poste visé")
+            apt.Start = dt
+            apt.duration = duree
+            apt.Location = sLieu
+            apt.Body = "Candidature " & Txt_(r, "ID") & vbCrLf & _
+                       "Poste : " & Txt_(r, "Poste visé") & vbCrLf & _
+                       "Telephone : " & Txt_(r, "Téléphone") & vbCrLf & _
+                       "E-mail : " & Txt_(r, "E-mail") & vbCrLf & _
+                       "Dossier : " & DossierCandidat(r, False)
+            apt.ReminderSet = True
+            apt.ReminderMinutesBeforeStart = 60
+            If inviter = vbYes Then
+                apt.MeetingStatus = 1                 ' olMeeting
+                apt.Recipients.Add Txt_(r, "E-mail")
+                apt.Recipients.ResolveAll
+            End If
+            apt.Display
+            On Error GoTo 0
+        End If
+    End If
+
+    ' 4. convocation par e-mail
+    If MsgBox("Envoyer la convocation par e-mail au candidat ?", vbQuestion + vbYesNo, _
+              "Convocation") = vbYes Then
+        EnvoyerConvocationAvecDetails r, sType, sLieu, duree
+    End If
+
+    Journaliser Txt_(r, "ID"), NomComplet(r), "Entretien planifie", _
+                Format$(dt, "dd/mm/yyyy hh:mm") & " - " & sType & " - " & sLieu, "OK"
+    MsgBox "Entretien planifie le " & Format$(dt, "dd/mm/yyyy") & " a " & Format$(dt, "hh:mm") & ".", _
+           vbInformation, "Planifier un entretien"
+End Sub
+
+Private Sub EnvoyerConvocationAvecDetails(ByVal ligne As Long, ByVal sType As String, _
+                                          ByVal sLieu As String, ByVal duree As Long)
+    Dim objet As String, corps As String, pj As String, b As Variant
+    Dim OL As Object, mail As Object, sig As String, direct As Boolean
+    If Not LireModele("CONVOCATION", objet, corps, pj) Then Exit Sub
+    b = Balises(ligne)
+    objet = AppliquerBalises(objet, b)
+    corps = AppliquerBalises(corps, b)
+    corps = Replace(corps, "{{TYPE_ENTRETIEN}}", sType)
+    corps = Replace(corps, "{{LIEU_ENTRETIEN}}", sLieu)
+    corps = Replace(corps, "{{DUREE_ENTRETIEN}}", CStr(duree))
+    corps = Replace(corps, "{{SIGNATURE_BLOC}}", BlocSignature())
+    Set OL = Outlook_()
+    If OL Is Nothing Then Exit Sub
+    direct = (InStr(1, ParamTxt("ModeEnvoi"), "direct", vbTextCompare) > 0)
+    On Error Resume Next
+    Set mail = OL.CreateItem(0)
+    mail.To = Txt_(ligne, "E-mail")
+    mail.Subject = objet
+    mail.GetInspector
+    sig = mail.HTMLBody
+    If Len(BlocSignature()) > 0 Then sig = ""
+    mail.HTMLBody = TexteVersHtml(corps) & sig
+    If direct Then mail.Send Else mail.Display
+    On Error GoTo 0
+    Ecrire ligne, "Date dernier contact", Date
+    Journaliser Txt_(ligne, "ID"), NomComplet(ligne), "Convocation", _
+                "Entretien " & sType & " - " & sLieu, "OK"
+End Sub
+
+'=====================================================================
+'  WORD - GENERATION DE DOCUMENTS
+'=====================================================================
+Private Function Word_() As Object
+    On Error Resume Next
+    Set Word_ = GetObject(, "Word.Application")
+    If Word_ Is Nothing Then Set Word_ = CreateObject("Word.Application")
+    On Error GoTo 0
+    If Word_ Is Nothing Then
+        MsgBox "Word n'a pas pu etre demarre sur ce poste.", vbCritical, "Word indisponible"
+    End If
+End Function
+
+Private Sub RemplacerDansRange(ByVal rg As Object, ByVal b As Variant, ByVal extra As String)
+    Dim i As Long
+    On Error Resume Next
+    With rg.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .Forward = True
+        .Wrap = 1                      ' wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchWildcards = False
+        For i = LBound(b, 1) To UBound(b, 1)
+            If Len(b(i, 1)) > 0 Then
+                .Text = b(i, 1)
+                .Replacement.Text = Left$(b(i, 2), 250)
+                .Execute Replace:=2    ' wdReplaceAll
+            End If
+        Next i
+        .Text = "{{DATE_DU_JOUR}}"
+        .Replacement.Text = Format$(Date, "dd/mm/yyyy")
+        .Execute Replace:=2
+        .Text = "{{LIEU_SIGNATURE}}"
+        .Replacement.Text = extra
+        .Execute Replace:=2
+    End With
+    On Error GoTo 0
+End Sub
+
+' Genere un document Word a partir d'un modele et l'enregistre dans le
+' dossier du candidat. Renvoie le chemin du fichier produit.
+Private Function GenererDoc(ByVal ligne As Long, ByVal fichierModele As String, _
+                            ByVal suffixe As String, ByVal libelle As String) As String
+    Dim wd As Object, doc As Object, sec As Object, hf As Object
+    Dim modele As String, dossier As String, sortie As String, b As Variant
+    Dim ville As String                  ' lieu de signature
+
+    modele = ParamTxt("DossierModeles")
+    If Right$(modele, 1) = "\" Then modele = Left$(modele, Len(modele) - 1)
+    modele = modele & "\" & fichierModele
+    If Dir(modele) = "" Then
+        MsgBox "Le modele Word est introuvable :" & vbCrLf & vbCrLf & modele & vbCrLf & vbCrLf & _
+               "Verifiez le chemin " & Chr(171) & " Dossier des modeles Word " & Chr(187) & _
+               " dans l'onglet Parametres, et la presence du fichier.", vbExclamation, libelle
+        Exit Function
+    End If
+
+    dossier = DossierCandidat(ligne, True)
+    If Dir(dossier, vbDirectory) = "" Then
+        MsgBox "Le dossier du candidat n'a pas pu etre cree :" & vbCrLf & dossier, vbExclamation, libelle
+        Exit Function
+    End If
+    sortie = dossier & "\" & NettoyerNomFichier(Txt_(ligne, "ID") & "_" & suffixe & "_" & _
+             Txt_(ligne, "Nom")) & ".docx"
+
+    Set wd = Word_()
+    If wd Is Nothing Then Exit Function
+    On Error GoTo echec
+    wd.Visible = True
+    Set doc = wd.Documents.Add(Template:=modele, NewTemplate:=False)
+    b = Balises(ligne)
+    ville = ParamTxt("VilleCabinet")     ' lieu de signature des courriers
+    RemplacerDansRange doc.Content, b, ville
+    For Each sec In doc.Sections
+        For Each hf In sec.Headers
+            RemplacerDansRange hf.Range, b, ville
+        Next hf
+        For Each hf In sec.Footers
+            RemplacerDansRange hf.Range, b, ville
+        Next hf
+    Next sec
+    On Error Resume Next
+    doc.SaveAs2 sortie, 16                              ' wdFormatDocumentDefault
+    If Err.Number <> 0 Then                             ' Word anterieur a 2010
+        Err.Clear
+        doc.SaveAs sortie, 16
+    End If
+    On Error GoTo echec
+    If InStr(1, ParamTxt("GenererPDF"), "oui", vbTextCompare) > 0 Then
+        On Error Resume Next
+        doc.ExportAsFixedFormat Replace(sortie, ".docx", ".pdf"), 17   ' wdExportFormatPDF
+        On Error GoTo echec
+    End If
+    On Error GoTo 0
+    Journaliser Txt_(ligne, "ID"), NomComplet(ligne), libelle, sortie, "OK"
+    GenererDoc = sortie
+    Exit Function
+echec:
+    MsgBox "Le document n'a pas pu etre genere." & vbCrLf & "Detail : " & Err.Description, _
+           vbCritical, libelle
+    Journaliser Txt_(ligne, "ID"), NomComplet(ligne), libelle, Err.Description, "ECHEC"
+End Function
+
+Public Sub FicheCandidatWord()
+    Dim r As Long, f As String
+    r = LigneCandidat()
+    If r = 0 Then Exit Sub
+    f = GenererDoc(r, "Fiche_Candidat.docx", "Fiche", "Fiche candidat")
+    If Len(f) > 0 Then Ecrire r, "Dossier candidat", DossierCandidat(r, False)
+End Sub
+
+Public Sub CourrierConvocation()
+    Dim r As Long
+    r = LigneCandidat()
+    If r = 0 Then Exit Sub
+    If Not IsDate(Val_(r, "Date entretien")) Then
+        If MsgBox("Aucune date d'entretien n'est renseignee pour ce candidat." & vbCrLf & _
+                  "Generer tout de meme le courrier ?", vbQuestion + vbYesNo, _
+                  "Courrier de convocation") <> vbYes Then Exit Sub
+    End If
+    GenererDoc r, "Convocation_Entretien.docx", "Convocation", "Courrier de convocation"
+End Sub
+
+Public Sub LettreRefusWord()
+    Dim r As Long
+    r = LigneCandidat()
+    If r = 0 Then Exit Sub
+    GenererDoc r, "Lettre_Refus.docx", "Refus", "Lettre de refus"
+End Sub
+
+Public Sub ConventionOuPromesse()
+    Dim r As Long
+    r = LigneCandidat()
+    If r = 0 Then Exit Sub
+    GenererDoc r, "Convention_Promesse.docx", "Convention", "Convention / promesse"
+End Sub
+
+'=====================================================================
+'  DOSSIER DU CANDIDAT
+'=====================================================================
+Public Sub DossierDuCandidat()
+    Dim r As Long, chemin As String
+    r = LigneCandidat()
+    If r = 0 Then Exit Sub
+    chemin = DossierCandidat(r, True)
+    If Dir(chemin, vbDirectory) = "" Then
+        MsgBox "Le dossier n'a pas pu etre cree :" & vbCrLf & chemin & vbCrLf & vbCrLf & _
+               "Verifiez le chemin indique dans l'onglet Parametres et vos droits d'acces.", _
+               vbExclamation, "Dossier du candidat"
+        Exit Sub
+    End If
+    On Error Resume Next
+    Shell "explorer.exe """ & chemin & """", vbNormalFocus
+    On Error GoTo 0
+End Sub
+
+'=====================================================================
+'  IMPORT DES CANDIDATURES DEPUIS OUTLOOK
+'=====================================================================
+Private Function TrouverDossier(ByVal parent As Object, ByVal nom As String) As Object
+    Dim f As Object
+    On Error Resume Next
+    For Each f In parent.Folders
+        If StrComp(f.Name, nom, vbTextCompare) = 0 Then
+            Set TrouverDossier = f
+            Exit Function
+        End If
+    Next f
+    On Error GoTo 0
+End Function
+
+Private Function AdresseExpediteur(ByVal item As Object) As String
+    Dim a As String
+    On Error Resume Next
+    a = item.SenderEmailAddress
+    If Left$(a, 1) = "/" Then          ' adresse Exchange : on recupere le SMTP
+        a = item.PropertyAccessor.GetProperty( _
+            "http://schemas.microsoft.com/mapi/proptag/0x39FE001E")
+    End If
+    On Error GoTo 0
+    AdresseExpediteur = a
+End Function
+
+Private Sub DecouperNom(ByVal complet As String, ByRef prenom As String, ByRef nom As String)
+    Dim p() As String, i As Long, maj As String, reste As String
+    complet = Trim$(complet)
+    If InStr(complet, "@") > 0 And InStr(complet, " ") = 0 Then
+        complet = Replace(Replace(Split(complet, "@")(0), ".", " "), "_", " ")
+    End If
+    complet = Trim$(complet)
+    If Len(complet) = 0 Then
+        prenom = "": nom = "": Exit Sub
+    End If
+    p = Split(complet, " ")
+    If UBound(p) = 0 Then
+        nom = UCase$(p(0)): prenom = "": Exit Sub
+    End If
+    ' un bloc entierement en majuscules est considere comme le nom
+    For i = LBound(p) To UBound(p)
+        If Len(p(i)) > 1 And p(i) = UCase$(p(i)) Then
+            maj = Trim$(maj & " " & p(i))
+        Else
+            reste = Trim$(reste & " " & p(i))
+        End If
+    Next i
+    If Len(maj) > 0 And Len(reste) > 0 Then
+        nom = maj: prenom = reste
+    Else
+        prenom = p(0)
+        nom = ""
+        For i = 1 To UBound(p)
+            nom = Trim$(nom & " " & p(i))
+        Next i
+        nom = UCase$(nom)
+    End If
+    prenom = StrConv(prenom, vbProperCase)
+End Sub
+
+Public Sub ImporterDepuisOutlook()
+    Dim OL As Object, NS As Object, boite As Object, dossier As Object
+    Dim item As Object, piece As Object
+    Dim ws As Worksheet, r As Long, n As Long, nbPJ As Long, i As Long
+    Dim prenom As String, nom As String, adresse As String, chemin As String
+    Dim nomDossier As String, reponse As VbMsgBoxResult, total As Long
+
+    Set OL = Outlook_()
+    If OL Is Nothing Then Exit Sub
+    Set NS = OL.GetNamespace("MAPI")
+    Set boite = NS.GetDefaultFolder(6)                  ' olFolderInbox
+    nomDossier = ParamTxt("DossierOutlook")
+    If Len(nomDossier) > 0 Then
+        Set dossier = TrouverDossier(boite, nomDossier)
+        If dossier Is Nothing Then
+            If MsgBox("Le dossier Outlook " & Chr(171) & " " & nomDossier & " " & Chr(187) & _
+                      " est introuvable dans la boite de reception." & vbCrLf & vbCrLf & _
+                      "Parcourir la boite de reception a la place ?", _
+                      vbQuestion + vbYesNo, "Import Outlook") <> vbYes Then Exit Sub
+            Set dossier = boite
+        End If
+    Else
+        Set dossier = boite
+    End If
+
+    total = 0
+    On Error Resume Next
+    For Each item In dossier.Items
+        If TypeName(item) = "MailItem" Then
+            If item.UnRead Then total = total + 1
+        End If
+    Next item
+    On Error GoTo 0
+    If total = 0 Then
+        MsgBox "Aucun message non lu dans le dossier " & Chr(171) & " " & dossier.Name & " " & _
+               Chr(187) & ".", vbInformation, "Import Outlook"
+        Exit Sub
+    End If
+    reponse = MsgBox(total & " message(s) non lu(s) dans " & Chr(171) & " " & dossier.Name & " " & _
+                     Chr(187) & "." & vbCrLf & vbCrLf & _
+                     "Creer une candidature par message, enregistrer les pieces jointes dans le " & _
+                     "dossier du candidat et marquer les messages comme lus ?", _
+                     vbQuestion + vbOKCancel, "Import Outlook")
+    If reponse <> vbOK Then Exit Sub
+
+    Set ws = Feuille(SH_CAND)
+    Application.ScreenUpdating = False
+    For Each item In dossier.Items
+        If TypeName(item) = "MailItem" Then
+            If item.UnRead Then
+                adresse = AdresseExpediteur(item)
+                DecouperNom item.SenderName, prenom, nom
+                r = NouvelleLigne()
+                Ecrire r, "Nom", nom
+                Ecrire r, "Prénom", prenom
+                Ecrire r, "E-mail", adresse
+                Ecrire r, "Date réception", Int(item.ReceivedTime)
+                Ecrire r, "Source", "Candidature spontanée"
+                Ecrire r, "Commentaires", "Objet du message : " & item.Subject
+                ' pieces jointes
+                chemin = DossierCandidat(r, True)
+                nbPJ = 0
+                If Dir(chemin, vbDirectory) <> "" Then
+                    On Error Resume Next
+                    For i = 1 To item.Attachments.Count
+                        Set piece = item.Attachments.item(i)
+                        If Len(piece.FileName) > 0 And Left$(piece.FileName, 6) <> "image0" Then
+                            piece.SaveAsFile chemin & "\" & NettoyerNomFichier(piece.FileName)
+                            nbPJ = nbPJ + 1
+                        End If
+                    Next i
+                    On Error GoTo 0
+                End If
+                If nbPJ > 0 Then
+                    Ecrire r, "Commentaires", "Objet du message : " & item.Subject & _
+                           "  |  " & nbPJ & " piece(s) jointe(s) enregistree(s)."
+                End If
+                item.UnRead = False
+                Journaliser Txt_(r, "ID"), NomComplet(r), "Import Outlook", _
+                            item.Subject & " (" & nbPJ & " piece(s) jointe(s))", "OK"
+                n = n + 1
+            End If
+        End If
+    Next item
+    Application.ScreenUpdating = True
+    MsgBox n & " candidature(s) importee(s)." & vbCrLf & vbCrLf & _
+           "Completez le poste vise et le statut, puis envoyez les accuses de reception.", _
+           vbInformation, "Import Outlook"
+End Sub
+
+'=====================================================================
+'  NOUVELLE CANDIDATURE
+'=====================================================================
+Private Function NouvelID() As String
+    Dim ws As Worksheet, r As Long, der As Long, colID As Long
+    Dim prefixe As String, s As String, num As Long, maxi As Long
+    Set ws = Feuille(SH_CAND)
+    colID = ColIdx(ws, "ID", ENTETE_CAND)
+    der = DerniereCandidature()
+    prefixe = "CAND-" & Format$(Date, "yyyy") & "-"
+    For r = ENTETE_CAND + 1 To der
+        s = Trim$(CStr(ws.Cells(r, colID).Value))
+        If Len(s) > Len(prefixe) Then
+            If StrComp(Left$(s, Len(prefixe)), prefixe, vbTextCompare) = 0 Then
+                num = Val(Mid$(s, Len(prefixe) + 1))
+                If num > maxi Then maxi = num
+            End If
+        End If
+    Next r
+    NouvelID = prefixe & Format$(maxi + 1, "000")
+End Function
+
+' Renvoie le numero d'une ligne vide prete a l'emploi (formules comprises)
+Private Function NouvelleLigne() As Long
+    Dim ws As Worksheet, lo As ListObject, r As Long, colID As Long, i As Long
+    Set ws = Feuille(SH_CAND)
+    colID = ColIdx(ws, "ID", ENTETE_CAND)
+    On Error Resume Next
+    Set lo = ws.ListObjects("tblCandidatures")
+    On Error GoTo 0
+    If Not lo Is Nothing Then
+        For i = 1 To lo.ListRows.Count
+            If Len(Trim$(CStr(lo.ListRows(i).Range.Cells(1, colID).Value))) = 0 Then
+                r = lo.ListRows(i).Range.Row
+                Exit For
+            End If
+        Next i
+        If r = 0 Then r = lo.ListRows.Add.Range.Row
+    Else
+        r = DerniereCandidature() + 1
+    End If
+    ws.Cells(r, colID).Value = NouvelID()
+    Ecrire r, "Date réception", Date
+    Ecrire r, "Statut", StatutN(1)
+    Ecrire r, "Prochaine action", "Accuser réception"
+    Ecrire r, "Date prochaine action", Date + CLng(ParamNum("SeuilAccuse", 7))
+    NouvelleLigne = r
+End Function
+
+Public Sub NouvelleCandidature()
+    Dim ws As Worksheet, r As Long, colNom As Long
+    Set ws = Feuille(SH_CAND)
+    If ws Is Nothing Then Exit Sub
+    ws.Activate
+    r = NouvelleLigne()
+    colNom = ColIdx(ws, "Nom", ENTETE_CAND)
+    ws.Cells(r, colNom).Select
+    Journaliser Txt_(r, "ID"), "", "Nouvelle candidature", "Creation manuelle", "OK"
+End Sub
+
+'=====================================================================
+'  RELANCES ET SUIVI
+'=====================================================================
+Public Sub RelancesAFaire()
+    Dim ws As Worksheet, r As Long, der As Long
+    Dim liste As String, n As Long, OL As Object, tache As Object
+    Dim alerte As String, lignes() As Long
+
+    Set ws = Feuille(SH_CAND)
+    der = DerniereCandidature()
+    ReDim lignes(1 To 500)
+    For r = ENTETE_CAND + 1 To der
+        If Len(Txt_(r, "ID")) > 0 Then
+            alerte = Txt_(r, "Alerte")
+            If alerte = "Retard" Or alerte = "À traiter" Or alerte = "Aujourd'hui" Then
+                n = n + 1
+                If n > 500 Then Exit For
+                lignes(n) = r
+                If n <= 25 Then
+                    liste = liste & vbCrLf & "  - " & Txt_(r, "ID") & "  " & NomComplet(r) & _
+                            "  (" & alerte & ")  " & Txt_(r, "Prochaine action")
+                End If
+            End If
+        End If
+    Next r
+
+    If n = 0 Then
+        MsgBox "Aucune relance en attente. Tous les dossiers sont a jour.", vbInformation, "Relances"
+        Exit Sub
+    End If
+    If MsgBox(n & " dossier(s) demandent une action :" & vbCrLf & liste & _
+              IIf(n > 25, vbCrLf & "  ... et " & (n - 25) & " autre(s)", "") & vbCrLf & vbCrLf & _
+              "Creer une tache Outlook pour chacun d'eux ?", _
+              vbQuestion + vbYesNo, "Relances a faire") <> vbYes Then Exit Sub
+
+    Set OL = Outlook_()
+    If OL Is Nothing Then Exit Sub
+    On Error Resume Next
+    For r = 1 To n
+        Set tache = OL.CreateItem(3)                    ' olTaskItem
+        tache.Subject = "Recrutement - " & Txt_(lignes(r), "ID") & " - " & NomComplet(lignes(r)) & _
+                        " - " & Txt_(lignes(r), "Prochaine action")
+        tache.Body = "Poste : " & Txt_(lignes(r), "Poste visé") & vbCrLf & _
+                     "E-mail : " & Txt_(lignes(r), "E-mail") & vbCrLf & _
+                     "Telephone : " & Txt_(lignes(r), "Téléphone") & vbCrLf & _
+                     "Statut : " & Txt_(lignes(r), "Statut")
+        If IsDate(Val_(lignes(r), "Date prochaine action")) Then
+            tache.DueDate = Val_(lignes(r), "Date prochaine action")
+        Else
+            tache.DueDate = Date
+        End If
+        tache.ReminderSet = True
+        tache.Save
+    Next r
+    On Error GoTo 0
+    Journaliser "", "", "Relances", n & " tache(s) Outlook creee(s)", "OK"
+    MsgBox n & " tache(s) creee(s) dans Outlook.", vbInformation, "Relances"
+End Sub
+
+'=====================================================================
+'  RGPD
+'=====================================================================
+Public Sub PurgeRGPD()
+    Dim ws As Worksheet, r As Long, der As Long, n As Long
+    Dim liste As String, lignes() As Long, d As Variant, duree As Long
+
+    Set ws = Feuille(SH_CAND)
+    der = DerniereCandidature()
+    duree = CLng(ParamNum("DureeConservation", 2))
+    ReDim lignes(1 To 1000)
+    For r = ENTETE_CAND + 1 To der
+        If Len(Txt_(r, "ID")) > 0 Then
+            d = Val_(r, "Purge RGPD le")
+            If IsDate(d) Then
+                If CDate(d) <= Date Then
+                    n = n + 1
+                    If n > 1000 Then Exit For
+                    lignes(n) = r
+                    If n <= 20 Then
+                        liste = liste & vbCrLf & "  - " & Txt_(r, "ID") & "  " & NomComplet(r) & _
+                                "  (dernier contact : " & JJMMAAAA(Val_(r, "Date dernier contact")) & ")"
+                    End If
+                End If
+            End If
+        End If
+    Next r
+
+    If n = 0 Then
+        MsgBox "Aucune candidature n'a depasse la duree de conservation de " & duree & " ans." & _
+               vbCrLf & vbCrLf & "Ce controle est a refaire periodiquement.", _
+               vbInformation, "Purge RGPD"
+        Exit Sub
+    End If
+    If MsgBox(n & " candidature(s) ont depasse la duree de conservation de " & duree & " ans :" & _
+              vbCrLf & liste & IIf(n > 20, vbCrLf & "  ... et " & (n - 20) & " autre(s)", "") & vbCrLf & vbCrLf & _
+              "Anonymiser ces lignes maintenant ?" & vbCrLf & vbCrLf & _
+              "Les nom, prenom, coordonnees et commentaires seront effaces." & vbCrLf & _
+              "Le poste, la source et les dates sont conserves pour les statistiques." & vbCrLf & _
+              "Cette operation est IRREVERSIBLE : enregistrez une copie du fichier au prealable.", _
+              vbExclamation + vbYesNo + vbDefaultButton2, "Purge RGPD") <> vbYes Then Exit Sub
+
+    Application.ScreenUpdating = False
+    For r = 1 To n
+        Ecrire lignes(r), "Nom", "[donnees effacees]"
+        Ecrire lignes(r), "Prénom", ""
+        Ecrire lignes(r), "Civilité", ""
+        Ecrire lignes(r), "E-mail", ""
+        Ecrire lignes(r), "Téléphone", ""
+        Ecrire lignes(r), "Ville", ""
+        Ecrire lignes(r), "Diplôme / École", ""
+        Ecrire lignes(r), "Commentaires", "Anonymise le " & Format$(Date, "dd/mm/yyyy") & " (RGPD)"
+        Ecrire lignes(r), "Dossier candidat", ""
+    Next r
+    Application.ScreenUpdating = True
+    Journaliser "", "", "Purge RGPD", n & " candidature(s) anonymisee(s)", "OK"
+    MsgBox n & " candidature(s) anonymisee(s)." & vbCrLf & vbCrLf & _
+           "Pensez a supprimer egalement les dossiers correspondants sur le disque " & _
+           "et les messages archives dans Outlook.", vbInformation, "Purge RGPD"
+End Sub
+
+'=====================================================================
+'  MAINTENANCE DES LISTES
+'=====================================================================
+Private Sub EtendreListe(ByVal nm As String)
+    Dim rg As Range, ws As Worksheet, c As Long, r1 As Long, r2 As Long
+    On Error Resume Next
+    Set rg = ThisWorkbook.Names(nm).RefersToRange
+    On Error GoTo 0
+    If rg Is Nothing Then Exit Sub
+    Set ws = rg.Worksheet
+    c = rg.Column
+    r1 = rg.Row
+    r2 = r1
+    Do While Len(Trim$(CStr(ws.Cells(r2 + 1, c).Value))) > 0
+        r2 = r2 + 1
+        If r2 > r1 + 200 Then Exit Do
+    Loop
+    ThisWorkbook.Names.Add Name:=nm, _
+        RefersTo:="='" & ws.Name & "'!" & ws.Range(ws.Cells(r1, c), ws.Cells(r2, c)).Address(True, True)
+End Sub
+
+Private Sub PoserDV(ByVal ws As Worksheet, ByVal entete As String, ByVal ligneEntete As Long, _
+                    ByVal nomListe As String, ByVal strict As Boolean, ByVal derLigne As Long)
+    Dim c As Long, rg As Range
+    c = ColIdx(ws, entete, ligneEntete)
+    If c = 0 Then Exit Sub
+    Set rg = ws.Range(ws.Cells(ligneEntete + 1, c), ws.Cells(derLigne, c))
+    On Error Resume Next
+    With rg.Validation
+        .Delete
+        .Add Type:=3, AlertStyle:=IIf(strict, 1, 2), Operator:=1, Formula1:="=" & nomListe
+        .IgnoreBlank = True
+        .InCellDropdown = True
+        .ShowInput = False
+        .ShowError = True
+        .ErrorTitle = "Valeur hors liste"
+        .ErrorMessage = "Choisissez une valeur dans la liste deroulante." & vbCrLf & _
+                        "Pour ajouter une valeur, completez la liste dans l'onglet Parametres."
+    End With
+    On Error GoTo 0
+End Sub
+
+Public Sub ActualiserListes()
+    Dim ws As Worksheet, we As Worksheet, i As Long, der As Long
+    Dim noms As Variant
+    noms = Array("Civilites", "Postes", "Sources", "StatutListe", "StatutClos", "Responsables", _
+                 "Evaluations", "Decisions", "Motifs", "Actions", "OuiNon", "Capa", _
+                 "TypesEntretien", "StatutsEntretien", "AvisEntretien")
+    For i = LBound(noms) To UBound(noms)
+        EtendreListe CStr(noms(i))
+    Next i
+
+    Set ws = Feuille(SH_CAND)
+    der = 1004
+    PoserDV ws, "Statut", ENTETE_CAND, "StatutListe", True, der
+    PoserDV ws, "Civilité", ENTETE_CAND, "Civilites", False, der
+    PoserDV ws, "Poste visé", ENTETE_CAND, "Postes", False, der
+    PoserDV ws, "Source", ENTETE_CAND, "Sources", False, der
+    PoserDV ws, "CAPA / CRFPA", ENTETE_CAND, "Capa", False, der
+    PoserDV ws, "Responsable", ENTETE_CAND, "Responsables", False, der
+    PoserDV ws, "Éval. /5", ENTETE_CAND, "Evaluations", False, der
+    PoserDV ws, "Décision", ENTETE_CAND, "Decisions", False, der
+    PoserDV ws, "Motif (si refus)", ENTETE_CAND, "Motifs", False, der
+    PoserDV ws, "Prochaine action", ENTETE_CAND, "Actions", False, der
+    PoserDV ws, "Consentement vivier", ENTETE_CAND, "OuiNon", False, der
+
+    Set we = Feuille(SH_ENTR)
+    If Not we Is Nothing Then
+        PoserDV we, "Type", ENTETE_ENTR, "TypesEntretien", False, 500
+        PoserDV we, "Statut", ENTETE_ENTR, "StatutsEntretien", False, 500
+        PoserDV we, "Avis", ENTETE_ENTR, "AvisEntretien", False, 500
+        PoserDV we, "Compte rendu rédigé", ENTETE_ENTR, "OuiNon", False, 500
+    End If
+    MsgBox "Les listes deroulantes ont ete actualisees.", vbInformation, "Actualiser les listes"
+End Sub
+
+'=====================================================================
+'  SUPPRESSION DES LIGNES D'EXEMPLE
+'=====================================================================
+Public Sub SupprimerExemples()
+    Dim ws As Worksheet, lo As ListObject, i As Long, n As Long
+    If MsgBox("Supprimer les lignes de demonstration (EXEMPLE-...) des onglets " & _
+              "Candidatures, Entretiens et Journal ?", vbQuestion + vbOKCancel, _
+              "Supprimer les exemples") <> vbOK Then Exit Sub
+    Application.ScreenUpdating = False
+    n = n + ViderExemples(SH_CAND, "tblCandidatures", 1)
+    n = n + ViderExemples(SH_ENTR, "tblEntretiens", 1)
+    n = n + ViderExemples(SH_JOUR, "tblJournal", 3)
+    Application.ScreenUpdating = True
+    MsgBox n & " ligne(s) d'exemple supprimee(s).", vbInformation, "Supprimer les exemples"
+End Sub
+
+Private Function ViderExemples(ByVal nomFeuille As String, ByVal nomTable As String, _
+                               ByVal colCle As Long) As Long
+    Dim ws As Worksheet, lo As ListObject, i As Long, n As Long, v As String
+    On Error Resume Next
+    Set ws = ThisWorkbook.Worksheets(nomFeuille)
+    If ws Is Nothing Then Exit Function
+    Set lo = ws.ListObjects(nomTable)
+    On Error GoTo 0
+    If lo Is Nothing Then Exit Function
+    For i = lo.ListRows.Count To 1 Step -1
+        v = UCase$(Trim$(CStr(lo.ListRows(i).Range.Cells(1, colCle).Value)))
+        If Left$(v, 7) = "EXEMPLE" Then
+            lo.ListRows(i).Delete
+            n = n + 1
+        End If
+    Next i
+    ViderExemples = n
+End Function
+
+'=====================================================================
+'  INSTALLATION DES BOUTONS
+'=====================================================================
+Private Sub SupprimerBoutons()
+    Dim ws As Worksheet, i As Long
+    For Each ws In ThisWorkbook.Worksheets
+        For i = ws.Shapes.Count To 1 Step -1
+            If Left$(ws.Shapes(i).Name, Len(PREFIXE_BTN)) = PREFIXE_BTN Then ws.Shapes(i).Delete
+        Next i
+    Next ws
+End Sub
+
+Private Sub CreerBouton(ByVal ws As Worksheet, ByVal macro As String, ByVal libelle As String, _
+                        ByVal couleur As Long, ByVal L As Single, ByVal T As Single, _
+                        ByVal W As Single, ByVal H As Single, Optional ByVal taille As Single = 9)
+    Dim shp As Shape
+    Set shp = ws.Shapes.AddShape(5, L, T, W, H)          ' 5 = rectangle a coins arrondis
+    With shp
+        .Name = PREFIXE_BTN & ws.Index & "_" & macro
+        .Fill.Solid
+        .Fill.ForeColor.RGB = couleur
+        .Fill.Transparency = 0
+        .Line.Visible = 0                                ' msoFalse
+        .Shadow.Visible = 0
+        .Placement = 3                                   ' xlFreeFloating
+        With .TextFrame2
+            .MarginLeft = 2: .MarginRight = 2: .MarginTop = 0: .MarginBottom = 0
+            .VerticalAnchor = 3                          ' msoAnchorMiddle
+            .WordWrap = -1
+            With .TextRange
+                .Text = libelle
+                .ParagraphFormat.Alignment = 2           ' msoAlignCenter
+                With .Font
+                    .Name = "Arial"
+                    .Size = taille
+                    .Bold = -1                           ' msoTrue
+                    .Fill.ForeColor.RGB = RGB(255, 255, 255)
+                End With
+            End With
+        End With
+        .OnAction = macro
+    End With
+End Sub
+
+Public Sub Installer()
+    Dim wa As Worksheet, wcd As Worksheet, ancre As Range
+    Dim defs As Variant, rapide As Variant, i As Long, col As Long, lig As Long
+    Dim L As Single, T As Single, W As Single, H As Single
+    Dim d1 As String, d2 As String, msg As String
+
+    Set wa = Feuille(SH_ACC)
+    Set wcd = Feuille(SH_CAND)
+    If wa Is Nothing Or wcd Is Nothing Then Exit Sub
+    Application.ScreenUpdating = False
+    SupprimerBoutons
+
+    defs = Array( _
+        Array("NouvelleCandidature", "Nouvelle candidature", C_BLEU), _
+        Array("ImporterDepuisOutlook", "Importer depuis Outlook", C_BLEU), _
+        Array("AccuserReception", "Accusé de réception", C_BLEU), _
+        Array("DemanderPieces", "Demander des pièces", C_BLEU), _
+        Array("PlanifierEntretien", "Planifier un entretien", C_BLEU), _
+        Array("MettreEnVivier", "Mettre en vivier", C_BLEU2), _
+        Array("EnvoyerProposition", "Proposition / suite favorable", C_BLEU2), _
+        Array("EnvoyerRefus", "Réponse négative", C_ROUGE), _
+        Array("EnvoiGroupe", "Envoi groupé", C_BLEU2), _
+        Array("FicheCandidatWord", "Fiche candidat (Word)", C_OR), _
+        Array("CourrierConvocation", "Courrier de convocation", C_OR), _
+        Array("LettreRefusWord", "Lettre de refus", C_OR), _
+        Array("ConventionOuPromesse", "Convention / promesse", C_OR), _
+        Array("DossierDuCandidat", "Dossier du candidat", C_GRIS), _
+        Array("RelancesAFaire", "Relances à faire", C_GRIS), _
+        Array("PurgeRGPD", "Purge RGPD", C_GRIS), _
+        Array("ActualiserListes", "Actualiser les listes", C_GRIS), _
+        Array("SupprimerExemples", "Supprimer les exemples", C_GRIS))
+
+    Set ancre = Nothing
+    On Error Resume Next
+    Set ancre = ThisWorkbook.Names("ZoneBoutons").RefersToRange
+    On Error GoTo 0
+    If ancre Is Nothing Then Set ancre = wa.Range("B11")
+
+    W = 212: H = 26
+    For i = LBound(defs) To UBound(defs)
+        col = i \ 9
+        lig = i Mod 9
+        L = ancre.Left + col * (W + 14)
+        T = ancre.Top + lig * (H + 5)
+        CreerBouton wa, CStr(defs(i)(0)), CStr(defs(i)(1)), CLng(defs(i)(2)), L, T, W, H
+    Next i
+
+    ' barre d'actions rapides en haut de l'onglet Candidatures
+    rapide = Array( _
+        Array("AccuserReception", "Accusé réception", C_BLEU), _
+        Array("PlanifierEntretien", "Entretien", C_BLEU), _
+        Array("EnvoyerRefus", "Refus", C_ROUGE), _
+        Array("FicheCandidatWord", "Fiche Word", C_OR), _
+        Array("DossierDuCandidat", "Dossier", C_GRIS))
+    W = 104: H = 21
+    For i = LBound(rapide) To UBound(rapide)
+        L = wcd.Range("A2").Left + 3 + i * (W + 5)
+        T = wcd.Range("A2").Top + 4
+        CreerBouton wcd, CStr(rapide(i)(0)), CStr(rapide(i)(1)), CLng(rapide(i)(2)), L, T, W, H, 8
+    Next i
+
+    ActualiserListesSilencieux
+    Application.ScreenUpdating = True
+
+    ' controle des dossiers de travail
+    d1 = ParamTxt("DossierCandidats")
+    d2 = ParamTxt("DossierModeles")
+    msg = "Installation terminee." & vbCrLf & vbCrLf & _
+          UBound(defs) + 1 & " boutons ont ete places dans l'onglet Accueil et 5 raccourcis " & _
+          "en haut de l'onglet Candidatures." & vbCrLf & vbCrLf
+    If Len(d1) > 0 Then
+        If Dir(d1, vbDirectory) = "" Then
+            If MsgBox("Le dossier des candidats n'existe pas encore :" & vbCrLf & d1 & vbCrLf & vbCrLf & _
+                      "Le creer maintenant ?", vbQuestion + vbYesNo, "Dossier des candidats") = vbYes Then
+                CreerArborescence d1
+            End If
+        End If
+    End If
+    If Len(d2) > 0 Then
+        If Dir(d2, vbDirectory) = "" Then
+            msg = msg & "A FAIRE : le dossier des modeles Word est introuvable :" & vbCrLf & _
+                  d2 & vbCrLf & "Creez-le et deposez-y les quatre fichiers .docx fournis." & vbCrLf & vbCrLf
+        End If
+    End If
+    msg = msg & "Pensez a enregistrer le classeur (format .xlsm) pour conserver les boutons."
+    MsgBox msg, vbInformation, "Gestion des candidatures"
+End Sub
+
+Private Sub ActualiserListesSilencieux()
+    Dim noms As Variant, i As Long
+    noms = Array("Civilites", "Postes", "Sources", "StatutListe", "StatutClos", "Responsables", _
+                 "Evaluations", "Decisions", "Motifs", "Actions", "OuiNon", "Capa", _
+                 "TypesEntretien", "StatutsEntretien", "AvisEntretien")
+    For i = LBound(noms) To UBound(noms)
+        EtendreListe CStr(noms(i))
+    Next i
+End Sub
+
+' Retire tous les boutons (pour desinstaller proprement)
+Public Sub DesinstallerBoutons()
+    If MsgBox("Retirer tous les boutons du classeur ?" & vbCrLf & _
+              "Les macros restent disponibles par Alt + F8.", _
+              vbQuestion + vbOKCancel, "Desinstaller") <> vbOK Then Exit Sub
+    SupprimerBoutons
+    MsgBox "Boutons retires.", vbInformation, "Desinstaller"
+End Sub
