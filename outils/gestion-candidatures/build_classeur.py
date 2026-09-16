@@ -834,7 +834,13 @@ L("2.  Débloquer le fichier",
   "Windows bloque par défaut les macros des fichiers reçus par e-mail ou téléchargés.")
 L("3.  Ouvrir l'éditeur de macros", "Rouvrez le classeur, puis appuyez sur Alt + F11.")
 L("4.  Importer le module",
-  "Dans l'éditeur : menu Fichier ▸ Importer un fichier… ▸ sélectionnez VP_Candidatures.bas ▸ Ouvrir.")
+  "Dans l'éditeur : menu Fichier ▸ Importer un fichier… (raccourci Ctrl + M) ▸ sélectionnez "
+  "VP_Candidatures.bas ▸ Ouvrir. Un élément « VP_Candidatures » apparaît sous Modules, "
+  "à gauche, dans l'arborescence du classeur.")
+L("4 bis.  Si l'import échoue",
+  "Utilisez la variante copier-coller, qui fonctionne dans tous les cas : dans l'éditeur, "
+  "menu Insertion ▸ Module ; ouvrez VP_Candidatures_a_coller.txt avec le Bloc-notes ; "
+  "Ctrl + A puis Ctrl + C ; revenez dans la fenêtre blanche de l'éditeur et faites Ctrl + V.")
 L("5.  Lancer l'installation",
   "Toujours dans l'éditeur : menu Exécution ▸ Exécuter Sub/UserForm, choisissez « Installer » ▸ Exécuter. "
   "Les boutons apparaissent alors dans l'onglet Accueil et en haut de l'onglet Candidatures.")
@@ -889,6 +895,13 @@ L("Données sensibles", "Ne saisissez jamais dans les commentaires d'information
 L("Accès", "Rangez le classeur dans un dossier à accès restreint et sauvegardez-le régulièrement.")
 
 S("7.  DÉPANNAGE")
+L("L'import du module échoue",
+  "Vérifiez le nom exact du fichier : certains navigateurs le téléchargent en "
+  "VP_Candidatures.bas.txt. Affichez les extensions dans l'Explorateur et renommez-le si besoin. "
+  "En cas de doute, utilisez directement la variante copier-coller (étape 4 bis).")
+L("Le module importé est illisible",
+  "Le fichier a été réenregistré par un éditeur qui a modifié les fins de ligne ou l'encodage. "
+  "Reprenez le fichier d'origine, ou utilisez la variante copier-coller.")
 L("Les boutons ne réagissent pas", "Le fichier a été enregistré en .xlsx, ou les macros sont désactivées : reprenez la section 3.")
 L("« Impossible de lire le fichier »", "Le fichier n'a pas été débloqué : clic droit ▸ Propriétés ▸ Débloquer.")
 L("Outlook ne s'ouvre pas", "Outlook doit être installé et un profil configuré sur le poste. "

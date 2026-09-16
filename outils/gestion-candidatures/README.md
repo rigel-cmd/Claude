@@ -9,7 +9,8 @@ Outil de suivi des candidatures (recrutement) sous Excel, avec automatisations
 | Fichier | Rôle |
 |---|---|
 | `Gestion_Candidatures_VP.xlsx` | Le classeur : 8 onglets, tableau de bord, listes déroulantes, alertes |
-| `VP_Candidatures.bas` | Module VBA à importer pour activer les 18 boutons (encodé Windows-1252) |
+| `VP_Candidatures.bas` | Module VBA à importer pour activer les 18 boutons |
+| `VP_Candidatures_a_coller.txt` | Le même code sans la ligne `Attribute`, pour un copier-coller |
 | `modeles-word/*.docx` | Les 4 modèles Word à déposer dans le dossier des modèles |
 
 ## Installation (5 minutes, une seule fois par poste)
@@ -19,7 +20,9 @@ Outil de suivi des candidatures (recrutement) sous Excel, avec automatisations
 2. **Fichier ▸ Enregistrer sous ▸ Classeur Excel prenant en charge les macros (.xlsm)**.
 3. Fermer Excel, puis dans l'Explorateur : clic droit sur le fichier ▸ Propriétés ▸
    cocher **Débloquer** (Windows bloque les macros des fichiers téléchargés).
-4. Rouvrir, `Alt + F11` ▸ **Fichier ▸ Importer un fichier** ▸ `VP_Candidatures.bas`.
+4. Rouvrir, `Alt + F11` ▸ **Fichier ▸ Importer un fichier** (`Ctrl + M`) ▸ `VP_Candidatures.bas`.
+   En cas d'échec : **Insertion ▸ Module**, puis coller le contenu de
+   `VP_Candidatures_a_coller.txt`.
 5. **Exécution ▸ Exécuter Sub/UserForm** ▸ `Installer`. Les boutons apparaissent.
 6. Copier le dossier `modeles-word` à l'emplacement indiqué dans Paramètres.
 
@@ -49,13 +52,15 @@ rapide même avec plusieurs milliers de lignes.
 pip install openpyxl && npm install docx
 python3 build_classeur.py Gestion_Candidatures_VP.xlsx
 node build_modeles_word.js modeles-word
-iconv -f UTF-8 -t WINDOWS-1252 VP_Candidatures.utf8.bas > VP_Candidatures.bas
+python3 build_module.py     # produit le .bas et le .txt depuis la source UTF-8
 python3 verifier.py        # contrôles de cohérence
 ```
 
-`VP_Candidatures.bas` doit rester en **Windows-1252** : l'éditeur VBA n'importe
-pas correctement l'UTF-8 et les accents seraient illisibles. La source de
-travail est `VP_Candidatures.utf8.bas`.
+`VP_Candidatures.bas` doit impérativement être en **Windows-1252** et en fins
+de ligne **CRLF** : en UTF-8 les accents deviennent illisibles, et avec des fins
+de ligne Unix (LF seuls) l'éditeur VBA lit le module comme une ligne unique et
+l'import échoue. `build_module.py` produit et vérifie ces deux propriétés ; la
+source de travail éditable est `VP_Candidatures.utf8.bas`.
 
 ## Contrôles automatisés (`verifier.py`)
 
@@ -63,6 +68,8 @@ travail est `VP_Candidatures.utf8.bas`.
   existent réellement dans le classeur ;
 - chaque bouton pointe vers une macro publique existante ;
 - structure du module (procédures et guillemets équilibrés) ;
+- **format du module** : CRLF, Windows-1252, ligne `Attribute` présente ou absente
+  selon le fichier, longueur de ligne et nombre de continuations dans les limites VBA ;
 - toutes les balises `{{...}}` des modèles e-mail et Word sont couvertes par le VBA ;
 - les 4 `.docx` sont des archives Office valides ;
 - **toutes les formules du classeur s'évaluent sans erreur** (bibliothèque `formulas`).

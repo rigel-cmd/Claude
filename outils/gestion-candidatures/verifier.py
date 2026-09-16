@@ -13,6 +13,27 @@ ERREURS, OK = [], []
 wb  = load_workbook(XLSX)
 vba = open(BAS, encoding="cp1252").read()
 
+# 0. format du fichier module : l'editeur VBA exige CRLF + Windows-1252
+for f, attendu_attribute in ((BAS, True), ("VP_Candidatures_a_coller.txt", False)):
+    try:
+        brut = open(f, "rb").read()
+        txt = brut.decode("cp1252")
+    except Exception as exc:
+        ERREURS.append("Module %s : illisible (%s)" % (f, exc)); continue
+    souci = []
+    if not (brut.count(b"\n") == brut.count(b"\r\n") == brut.count(b"\r")):
+        souci.append("fins de ligne non CRLF")
+    if txt.splitlines()[0].startswith("Attribute VB_Name") != attendu_attribute:
+        souci.append("ligne Attribute VB_Name " + ("absente" if attendu_attribute else "à retirer"))
+    trop = [i for i, l in enumerate(txt.splitlines(), 1) if len(l) > 1000]
+    if trop: souci.append("ligne(s) > 1000 caractères %s" % trop[:3])
+    cont, maxcont = 0, 0
+    for l in txt.splitlines():
+        cont = cont + 1 if l.rstrip().endswith(" _") else 0
+        maxcont = max(maxcont, cont)
+    if maxcont > 24: souci.append("%d continuations de ligne (max 24)" % maxcont)
+    (ERREURS if souci else OK).append("Module %-30s : %s" % (f, souci or "CRLF, cp1252, %d lignes" % brut.count(b"\r\n")))
+
 # 1. feuilles referencees par le VBA
 feuilles = re.findall(r'Const SH_\w+\s+As String = "([^"]+)"', vba)
 manq = [f for f in feuilles if f not in wb.sheetnames]

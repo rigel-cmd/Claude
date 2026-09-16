@@ -1,4 +1,5 @@
-Attribute VB_Name = "VP_Candidatures"
+' Module VP_Candidatures - a coller dans un module standard
+' (Alt+F11 > Insertion > Module, puis Ctrl+A / Ctrl+V dans la fenetre de droite)
 Option Explicit
 '=====================================================================
 '  CABINET VICTIMES & PREJUDICES - GESTION DES CANDIDATURES
