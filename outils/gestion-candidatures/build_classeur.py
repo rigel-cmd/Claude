@@ -842,8 +842,13 @@ L("4 bis.  Si l'import échoue",
   "menu Insertion ▸ Module ; ouvrez VP_Candidatures_a_coller.txt avec le Bloc-notes ; "
   "Ctrl + A puis Ctrl + C ; revenez dans la fenêtre blanche de l'éditeur et faites Ctrl + V.")
 L("5.  Lancer l'installation",
-  "Toujours dans l'éditeur : menu Exécution ▸ Exécuter Sub/UserForm, choisissez « Installer » ▸ Exécuter. "
-  "Les boutons apparaissent alors dans l'onglet Accueil et en haut de l'onglet Candidatures.")
+  "Revenez dans Excel (Alt + F11) puis appuyez sur Alt + F8 : choisissez « Installer » dans la "
+  "liste des macros et cliquez sur Exécuter. Les boutons apparaissent alors dans l'onglet Accueil "
+  "et en haut de l'onglet Candidatures.")
+N("Variante depuis l'éditeur : cliquez dans le corps de la procédure Installer, puis appuyez sur F5. "
+  "Le libellé du menu Exécution varie selon les versions — « Exécuter la macro » ou "
+  "« Exécuter Sub/UserForm » — mais il s'agit de la même commande, et c'est la position du curseur "
+  "qui détermine la procédure lancée.")
 L("6.  Enregistrer", "Revenez dans Excel (Alt + F11) et enregistrez. C'est terminé.")
 N("Si un bandeau jaune « Avertissement de sécurité » s'affiche à l'ouverture, cliquez sur « Activer le contenu ». "
   "Le classeur est alors considéré comme approuvé sur ce poste.")
@@ -895,6 +900,10 @@ L("Données sensibles", "Ne saisissez jamais dans les commentaires d'information
 L("Accès", "Rangez le classeur dans un dossier à accès restreint et sauvegardez-le régulièrement.")
 
 S("7.  DÉPANNAGE")
+L("Je ne trouve pas la commande d'exécution",
+  "Le libellé diffère d'une version à l'autre. Le plus simple est de passer par Excel : Alt + F8, "
+  "sélectionnez « Installer », puis Exécuter. Si la liste est vide, le module n'a pas été importé "
+  "dans ce classeur : vérifiez qu'il figure bien sous Modules dans l'arborescence de l'éditeur.")
 L("L'import du module échoue",
   "Vérifiez le nom exact du fichier : certains navigateurs le téléchargent en "
   "VP_Candidatures.bas.txt. Affichez les extensions dans l'Explorateur et renommez-le si besoin. "
