@@ -1,15 +1,34 @@
-# Fiche récapitulative à remettre lors de l'entretien de parcours professionnel
+# Fiche d'information : quatre dispositifs pour faire évoluer son parcours professionnel
 
-Fiche A4 recto-verso remise au collaborateur **lors de** son entretien de parcours professionnel (EPP),
-aux couleurs de **Victimes & Préjudices Avocats**. Elle sert de support à l'échange : elle présente les
-quatre dispositifs sur lesquels le salarié doit être informé pendant l'entretien. Le verso se complète
-avec lui, pendant l'entretien : pistes retenues, notes, date de l'entretien, nom de la personne qui le
-mène et contact RH. Le salarié conserve ensuite la fiche.
+Fiche A4 recto-verso, aux couleurs de **Victimes & Préjudices Avocats**, remise au collaborateur lors de
+son entretien de parcours professionnel. Elle porte exclusivement sur les quatre dispositifs dont il doit
+être informé à cette occasion :
+
+1. le conseil en évolution professionnelle (CEP) ;
+2. la validation des acquis de l'expérience (VAE) ;
+3. le compte personnel de formation (CPF) ;
+4. la dotation de l'employeur.
 
 | Fichier | Usage |
 |---|---|
-| [`Fiche_recap_entretien_parcours_professionnel.pdf`](./Fiche_recap_entretien_parcours_professionnel.pdf) | Version prête à imprimer ou à envoyer par e-mail |
-| [`Fiche_recap_entretien_parcours_professionnel.docx`](./Fiche_recap_entretien_parcours_professionnel.docx) | Version modifiable, avec les polices Poppins et Open Sans incorporées |
+| [`Fiche_dispositifs_evolution_professionnelle.pdf`](./Fiche_dispositifs_evolution_professionnelle.pdf) | Version prête à imprimer ou à envoyer par e-mail |
+| [`Fiche_dispositifs_evolution_professionnelle.docx`](./Fiche_dispositifs_evolution_professionnelle.docx) | Version modifiable, avec les polices Poppins et Open Sans incorporées |
+
+## Contenu
+
+- **Recto**
+  - Titre « Faire évoluer votre parcours professionnel ».
+  - Quatre cartes « Quel dispositif pour quel besoin ? ».
+  - **01 · CEP :** principes (gratuit, confidentiel, sans accord de l'employeur), contacts Apec et Mon CEP par Avenir Actifs (Auvergne-Rhône-Alpes), autres situations.
+  - **02 · VAE :** chiffres clés (congé de 48 h, 6 à 8 mois, financement CPF, accompagnateur), puis démarche sur vae.gouv.fr.
+- **Verso**
+  - **03 · CPF :** 500 € et 800 € par an, participation de 150 €, plafonds 2026, règles d'absence.
+  - **04 · Dotation de l'employeur :** cofinancement d'un projet commun, exonération de la participation.
+  - Mémo « Où vous informer ? » : le site et les contacts de chaque dispositif.
+
+**Sources :** apec.fr, ara.avenir-actifs.org, vae.gouv.fr, moncompteformation.gouv.fr et son portail
+employeurs. Informations à jour au 23 septembre 2026 : les montants du CPF sont révisés régulièrement,
+vérifiez-les avant chaque réimpression.
 
 ## Charte appliquée
 
@@ -18,24 +37,8 @@ mène et contact RH. Le salarié conserve ensuite la fiche.
 - **Éléments graphiques :**
   - bandeau crème à vague, avec la feuille du logo en grand ;
   - pastilles pictogrammes par dispositif, cartes et chiffres clés ;
-  - frise du rythme des entretiens et liseré tricolore en pied de page.
+  - liseré tricolore en pied de page.
 - **Logo :** il a été reconstitué en haute définition à partir du symbole feuille et du nom du cabinet en Open Sans Bold, car l'image fournie était trop peu définie pour l'impression. Si vous disposez du fichier officiel en haute définition, remplacez `ressources/logo.png` (ou l'image directement dans Word : clic droit › Modifier l'image).
-
-## Contenu
-
-- **Recto : se faire accompagner**
-  - Introduction et « Quatre dispositifs pour vous accompagner ».
-  - **01 · Conseil en évolution professionnelle (CEP).** Contacts Apec (cadres, jeunes diplômés) et Mon CEP par Avenir Actifs (Auvergne-Rhône-Alpes), plus un renvoi vers mon-cep.org pour les autres situations.
-  - **02 · VAE :** chiffres clés (congé de 48 h, 6 à 8 mois, financement CPF, accompagnateur), puis démarche sur vae.gouv.fr.
-- **Verso : financer et suivre**
-  - **03 · CPF :** 500 € et 800 € par an, participation de 150 €, plafonds 2026, règles d'absence.
-  - **04 · Dotation de l'employeur.**
-  - Frise « Le rythme de vos entretiens ».
-  - « Mes prochaines étapes », à convenir ensemble (cases à cocher), et « Mes notes », avec la date de l'entretien, la personne qui le mène et le contact RH.
-
-**Sources :** apec.fr, ara.avenir-actifs.org, vae.gouv.fr, moncompteformation.gouv.fr et son portail
-employeurs. Informations à jour au 23 septembre 2026 : les montants du CPF sont révisés régulièrement,
-vérifiez-les avant chaque réimpression.
 
 ## Régénérer la fiche
 
@@ -45,11 +48,11 @@ Prérequis : Python 3 avec Pillow, Node.js avec le paquet `docx`, les polices Po
 `material-design-icons-iconfont`).
 
 ```bash
-# 1. Visuels (bandeaux, logo, pastilles, frise) -> ressources/
+# 1. Visuels (bandeaux, logo, pastilles, pictogrammes) -> ressources/
 python3 graphismes.py feuille.png <dossier_polices> <MaterialIcons-Regular.ttf> ressources
 
 # 2. Word avec polices incorporées
-node generer_fiche.js Fiche_recap_entretien_parcours_professionnel.docx ressources <dossier_polices>
+node generer_fiche.js Fiche_dispositifs_evolution_professionnelle.docx ressources <dossier_polices>
 
 # 3. PDF : générer une copie sans polices incorporées (polices installées sur le poste),
 #    puis la convertir avec LibreOffice

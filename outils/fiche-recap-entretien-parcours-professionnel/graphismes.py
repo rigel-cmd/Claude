@@ -127,27 +127,6 @@ def lisere():
 
 
 # --------------------------------------------------------------------------
-# Frise chronologique : filet et quatre jalons aux centres de quatre colonnes égales
-# --------------------------------------------------------------------------
-def frise(largeur_mm=178, n=4):
-    W, H = mm(largeur_mm), mm(7)
-    couleurs = [ROUGE, ORANGE, VERT, ARDOISE]
-
-    def dessin(d, k):
-        y = H * k / 2
-        d.rounded_rectangle((W * k / (2 * n), y - mm(0.45) * k, W * k * (1 - 1 / (2 * n)), y + mm(0.45) * k),
-                            radius=mm(0.45) * k, fill=(214, 211, 211))
-        for i in range(n):
-            cx = W * k * (2 * i + 1) / (2 * n)
-            r = mm(3.1) * k
-            d.ellipse((cx - r, y - r, cx + r, y + r), fill=BLANC)
-            r2 = mm(2.3) * k
-            d.ellipse((cx - r2, y - r2, cx + r2, y + r2), fill=couleurs[i])
-
-    sur_echantillonner(dessin, (W, H)).save(os.path.join(SORTIE, "frise.png"), dpi=(DPI, DPI))
-
-
-# --------------------------------------------------------------------------
 # Pastilles et pictogrammes (Material Icons)
 # --------------------------------------------------------------------------
 def icone(nom, code, couleur, taille_mm, fond=None, echelle=0.58):
@@ -167,7 +146,6 @@ if __name__ == "__main__":
     bandeau_p1()
     bandeau_p2()
     lisere()
-    frise()
     # Pastilles de section : cercle plein couleur de section, pictogramme blanc
     icone("pastille_cep", 0xE87A, BLANC, 12, fond=ROUGE)          # explore
     icone("pastille_vae", 0xE7AF, BLANC, 12, fond=ORANGE)         # workspace_premium
@@ -178,7 +156,5 @@ if __name__ == "__main__":
     icone("ico_web", 0xE894, ROUGE, 4)          # language
     icone("ico_horaires", 0xE8B5, ROUGE, 4)     # schedule
     icone("ico_lieu", 0xE55F, ROUGE, 4)         # place
-    icone("ico_case", 0xE835, ROUGE, 4.6)       # check_box_outline_blank
     icone("ico_idee", 0xE0F0, ORANGE, 9, fond=(254, 243, 221), echelle=0.62)  # lightbulb
-    icone("ico_notes", 0xE745, ARDOISE, 5)      # edit_note
     print("ok")

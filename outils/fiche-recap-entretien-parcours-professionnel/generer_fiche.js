@@ -1,4 +1,5 @@
-// Génère la fiche récapitulative remise au collaborateur lors de l'entretien de
+// Génère la fiche d'information sur les quatre dispositifs d'évolution professionnelle
+// (CEP, VAE, CPF, dotation de l'employeur), remise au collaborateur lors de l'entretien de
 // parcours professionnel : Word A4 recto-verso, charte Victimes & Préjudices Avocats.
 //
 // Usage :
@@ -18,7 +19,7 @@ const {
   TextWrappingType, VerticalAlign, VerticalPositionRelativeFrom, WidthType,
 } = require("docx");
 
-const SORTIE = process.argv[2] || "Fiche_recap_entretien_parcours_professionnel.docx";
+const SORTIE = process.argv[2] || "Fiche_dispositifs_evolution_professionnelle.docx";
 const RES = process.argv[3] || path.join(__dirname, "ressources");
 const POLICES = process.argv[4] || null;
 const DATE_MAJ = "23 septembre 2026";
@@ -191,7 +192,7 @@ const enTetePremiere = new Header({ children: [p(imageFlottante("bandeau_p1.png"
 const enTeteSuite = new Header({
   children: [p([
     imageFlottante("bandeau_p2.png", 0, 0, 210),
-    surtitre("ENTRETIEN DE PARCOURS PROFESSIONNEL  ·  FICHE RÉCAPITULATIVE", C.ardoise, 13),
+    surtitre("FAIRE ÉVOLUER VOTRE PARCOURS PROFESSIONNEL  ·  FICHE D'INFORMATION", C.ardoise, 13),
   ], { spacing: { after: dxa(11) } })],
 });
 const pied = () => new Footer({
@@ -209,28 +210,21 @@ const RETRAIT_TITRE = dxa(55); // laisse la place à la grande feuille du bandea
 
 const ouverture = [
   p(image("logo.png", 34), { spacing: { after: dxa(5) } }),
-  p(surtitre("FICHE REMISE LORS DE VOTRE ENTRETIEN", C.rouge, 15), { spacing: { after: 40 } }),
+  p(surtitre("FICHE D'INFORMATION", C.rouge, 15), { spacing: { after: 40 } }),
   p([
-    titreRun("Votre entretien de", 46, C.ardoise),
+    titreRun("Faire évoluer votre", 46, C.ardoise),
     titreRun("parcours professionnel", 46, C.rouge, { break: 1 }),
   ], { spacing: { after: 100, line: 228 }, indent: { right: RETRAIT_TITRE } }),
-  p(t("Faire le point et construire votre évolution professionnelle", { size: 20 }),
-    { indent: { right: RETRAIT_TITRE } }),
-  p([
-    t("Cet entretien est un temps d'échange consacré à ", { size: 19 }),
-    g("vos perspectives d'évolution", { size: 19 }),
-    t(" (compétences, formation, mobilité, reconversion) ; il ", { size: 19 }),
-    g("ne porte pas sur l'évaluation de votre travail", { size: 19 }),
-    t(". Nous y faisons le point ensemble sur les quatre dispositifs de cette fiche, que vous conservez. Il donne lieu à un compte rendu écrit dont vous recevez une copie.", { size: 19 }),
-  ], { spacing: { before: dxa(14), after: dxa(4), line: 264 } }),
-  p(surtitre("QUATRE DISPOSITIFS POUR VOUS ACCOMPAGNER", C.secondaire, 13), { spacing: { after: 70 } }),
-  cartes(colonnes(3), [
+  p(t("Quatre dispositifs à connaître", { size: 20 }), { indent: { right: RETRAIT_TITRE } }),
+  p(surtitre("QUEL DISPOSITIF POUR QUEL BESOIN ?", C.secondaire, 13), { spacing: { before: dxa(15), after: 70 } }),
+  cartes(colonnes(4), [
     ["01", C.rouge, C.tRouge, "Vous vous interrogez sur votre avenir professionnel ?", "Le CEP vous aide à y voir clair"],
     ["02", C.orangeTexte, C.tOrange, "Votre expérience vaut un diplôme que vous n'avez pas ?", "La VAE la fait reconnaître"],
-    ["03 · 04", C.vertTexte, C.tVert, "Vous avez un projet de formation ?", "Votre CPF, complété par l'entreprise"],
+    ["03", C.vertTexte, C.tVert, "Vous avez un projet de formation ?", "Votre CPF le finance"],
+    ["04", C.ardoise, C.tArdoise, "Ce projet sert aussi l'entreprise ?", "L'employeur peut le cofinancer"],
   ].map(([n, couleur, fond, question, reponse]) => ({
     fond,
-    marges: { top: 120, bottom: 130, left: 170, right: 170 },
+    marges: { top: 120, bottom: 130, left: 160, right: 160 },
     enfants: [
       p(titreRun(n, 26, couleur), { spacing: { after: 30, line: 240 } }),
       p(t(question, { size: 15, color: C.secondaire }), { spacing: { after: 40, line: 240 } }),
@@ -253,7 +247,7 @@ const cep = [
       p(t(texte, { size: 16 }), { spacing: { after: 0, line: 252 } }),
     ],
   }))),
-  espace(3.5),
+  espace(5),
   cartes(colonnes(2), [
     {
       fond: C.creme,
@@ -288,7 +282,7 @@ const cep = [
 ];
 
 const vae = [
-  espace(3),
+  espace(6),
   ...enteteSection("pastille_vae.png", "02", "FAIRE RECONNAÎTRE SON EXPÉRIENCE", C.orangeTexte, "La validation des acquis de l'expérience (VAE)"),
   cartes(colonnes(4), [
     chiffre("48 h", "de congé VAE sur le temps de travail, rémunération maintenue", C.orangeTexte, C.tOrange),
@@ -318,7 +312,7 @@ const cpf = [
 
 const COL_DOT = [dxa(106), GOUTTIERE * 2, LARGEUR - dxa(106) - GOUTTIERE * 2];
 const dotation = [
-  espace(3),
+  espace(9),
   ...enteteSection("pastille_dot.png", "04", "CONSTRUIRE ENSEMBLE", C.ardoise, "La dotation de l'employeur"),
   grille(COL_DOT, [
     cellule(COL_DOT[0], [
@@ -329,86 +323,48 @@ const dotation = [
     cellule(COL_DOT[1], []),
     cellule(COL_DOT[2], [
       p(image("ico_idee.png", 9), { spacing: { after: 60 } }),
-      p(titreRun("Parlons-en dès aujourd'hui", 21, C.ardoise), { spacing: { after: 40, line: 245 } }),
-      p(t("Cet entretien est le bon moment pour imaginer ensemble un projet de formation et son financement.", { size: 16 }), { spacing: { after: 0, line: 252 } }),
+      p(titreRun("Un projet de formation en tête ?", 21, C.ardoise), { spacing: { after: 40, line: 245 } }),
+      p(t("Parlez-en à votre responsable ou au service RH : ensemble, vous pouvez en construire le financement.", { size: 16 }), { spacing: { after: 0, line: 252 } }),
     ], { fond: C.creme, marges: { top: 150, bottom: 150, left: 200, right: 200 } }),
   ]),
 ];
 
-// Prochaines étapes et notes
-const COL_FIN = colonnes(2);
-const RETRAIT_CASE = dxa(7);
-const caseACocher = (texte) =>
-  p([image("ico_case.png", 3.8), t("\t" + texte, { size: 17 })], {
-    indent: { left: RETRAIT_CASE, hanging: RETRAIT_CASE },
-    spacing: { after: 110, line: 252 },
-  });
-const ligneVide = (largeurTexte, before = 190) =>
-  p(t("\t", { color: C.gris }), {
-    tabStops: [{ type: TabStopType.LEFT, position: largeurTexte, leader: "underscore" }],
-    spacing: { before, after: 0 },
-  });
-const ligneChamp = (libelle, largeurTexte, before = 220) =>
-  p([surtitre(libelle, C.secondaire, 13), t("\t", { color: C.gris })], {
-    tabStops: [{ type: TabStopType.LEFT, position: largeurTexte, leader: "underscore" }],
-    spacing: { before, after: 0 },
-  });
+// Mémo final : où s'informer pour chaque dispositif
+const COL_MEMO = colonnes(2);
+const MARGE_MEMO = 180;
+const memo = (pastille, fond, couleur, nom, lien, detail, largeur) => {
+  const interieur = largeur - 2 * MARGE_MEMO;
+  const l1 = dxa(13);
+  return {
+    fond,
+    marges: { top: 150, bottom: 150, left: MARGE_MEMO, right: MARGE_MEMO },
+    enfants: [grille([l1, interieur - l1], [
+      cellule(l1, [p(image(pastille, 10))], { vAlign: VerticalAlign.CENTER }),
+      cellule(interieur - l1, [
+        p(titreRun(nom, 19, C.ardoise), { spacing: { after: 20, line: 240 } }),
+        p(g(lien, { size: 17, color: couleur }), { spacing: { after: 10, line: 240 } }),
+        p(t(detail, { size: 15, color: C.secondaire }), { spacing: { after: 0, line: 240 } }),
+      ], { vAlign: VerticalAlign.CENTER }),
+    ])],
+  };
+};
 
-const COL_FRISE = Array(4).fill(LARGEUR / 4);
-const jalon = (titre, texte, couleur) => cellule(LARGEUR / 4, [
-  p(titreRun(titre, 19, couleur), { alignment: AlignmentType.CENTER, spacing: { before: 60, after: 20 } }),
-  p(t(texte, { size: 15, color: C.secondaire }), { alignment: AlignmentType.CENTER, spacing: { after: 0, line: 240 } }),
-], { marges: { top: 0, bottom: 0, left: 90, right: 90 } });
-
-const rythme = [
-  espace(5),
-  p(surtitre("ET ENSUITE ?", C.rouge, 13), { spacing: { after: 10 } }),
-  p(titreRun("Le rythme de vos entretiens", 27, C.ardoise), { spacing: { after: 100 } }),
-  p(image("frise.png", 178), { spacing: { after: 0 } }),
-  grille(COL_FRISE, [
-    jalon("À l'embauche", "Vous êtes informé(e) de ce droit", C.rouge),
-    jalon("Dans l'année", "Premier entretien de parcours professionnel", C.orangeTexte),
-    jalon("Tous les 4 ans", "Un nouvel entretien, à compter du précédent", C.vertTexte),
-    jalon("Tous les 8 ans", "Un état des lieux récapitulatif de votre parcours", C.ardoise),
+const ouSInformer = [
+  espace(26),
+  p(surtitre("EN RÉSUMÉ", C.rouge, 13), { spacing: { after: 10 } }),
+  p(titreRun("Où vous informer ?", 27, C.ardoise), { spacing: { after: 110 } }),
+  cartes(COL_MEMO, [
+    memo("pastille_cep.png", C.tRouge, C.rouge, "Conseil en évolution professionnelle", "mon-cep.org",
+      "Apec 0 809 361 212 · Avenir Actifs 09 72 01 02 03", COL_MEMO[0]),
+    memo("pastille_vae.png", C.tOrange, C.orangeTexte, "Validation des acquis de l'expérience", "vae.gouv.fr",
+      "Candidature en ligne et suivi de votre parcours", COL_MEMO[2]),
   ]),
-  p([
-    g("Également proposé ", { size: 15, color: C.secondaire }),
-    t("à votre retour de certaines absences (congé de maternité, d'adoption, parental, de proche aidant, sabbatique, arrêt longue maladie…), après la visite médicale de mi-carrière et à l'approche de vos 60 ans.", { size: 15, color: C.secondaire }),
-  ], { alignment: AlignmentType.CENTER, spacing: { before: 120, after: 0, line: 245 } }),
-];
-
-const fin = [
-  espace(6),
-  cartes(COL_FIN, [
-    {
-      fond: C.creme,
-      marges: { top: 200, bottom: 200, left: 220, right: 220 },
-      enfants: [
-        p(surtitre("À CONVENIR ENSEMBLE", C.rouge, 13), { spacing: { after: 20 } }),
-        p(titreRun("Mes prochaines étapes", 26, C.ardoise), { spacing: { after: 140 } }),
-        caseACocher("Prendre rendez-vous avec un conseiller en évolution professionnelle"),
-        caseACocher("Explorer une VAE sur vae.gouv.fr"),
-        caseACocher("Consulter mes droits sur moncompteformation.gouv.fr"),
-        caseACocher("Étudier un projet de formation cofinancé avec l'entreprise"),
-        p([image("ico_case.png", 3.8), t("\tAutre : ", { size: 17 }), t("\t", { color: C.gris })], {
-          indent: { left: RETRAIT_CASE, hanging: RETRAIT_CASE },
-          tabStops: [{ type: TabStopType.LEFT, position: COL_FIN[0] - 440 - RETRAIT_CASE, leader: "underscore" }],
-          spacing: { after: 0 },
-        }),
-      ],
-    },
-    {
-      fond: C.tBleu,
-      marges: { top: 200, bottom: 200, left: 220, right: 220 },
-      enfants: [
-        p(surtitre("PENDANT L'ENTRETIEN", C.rouge, 13), { spacing: { after: 20 } }),
-        p(titreRun("Mes notes", 26, C.ardoise), { spacing: { after: 40 } }),
-        ...Array.from({ length: 3 }, () => ligneVide(COL_FIN[2] - 440)),
-        ligneChamp("ENTRETIEN DU  ", COL_FIN[2] - 440, 300),
-        ligneChamp("MENÉ PAR  ", COL_FIN[2] - 440),
-        ligneChamp("CONTACT RH  ", COL_FIN[2] - 440),
-      ],
-    },
+  espace(4),
+  cartes(COL_MEMO, [
+    memo("pastille_cpf.png", C.tVert, C.vertTexte, "Compte personnel de formation", "moncompteformation.gouv.fr",
+      "Site et application Mon Compte Formation", COL_MEMO[0]),
+    memo("pastille_dot.png", C.tArdoise, C.ardoise, "Dotation de l'employeur", "Votre responsable ou le service RH",
+      "Pour construire un projet de formation commun", COL_MEMO[2]),
   ]),
 ];
 
@@ -434,7 +390,7 @@ const policesIncorporees = POLICES ? [
 
 const doc = new Document({
   creator: "Victimes & Préjudices Avocats",
-  title: "Fiche récapitulative – Entretien de parcours professionnel",
+  title: "Fiche d'information – Quatre dispositifs pour faire évoluer votre parcours professionnel",
   fonts: policesIncorporees,
   styles: { default: { document: { run: { font: TEXTE, size: 17, color: C.anthracite } } } },
   numbering: {
@@ -454,7 +410,7 @@ const doc = new Document({
     },
     headers: { first: enTetePremiere, default: enTeteSuite },
     footers: { first: pied(), default: pied() },
-    children: [...ouverture, ...cep, ...vae, ...cpf, ...dotation, ...rythme, ...fin],
+    children: [...ouverture, ...cep, ...vae, ...cpf, ...dotation, ...ouSInformer],
   }],
 });
 
