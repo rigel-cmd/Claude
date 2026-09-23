@@ -1,5 +1,5 @@
 // Génère la fiche d'information sur les quatre dispositifs d'évolution professionnelle
-// (CEP, VAE, CPF, dotation de l'employeur), remise au collaborateur lors de l'entretien de
+// (CEP, VAE, CPF, dotation du cabinet), remise au collaborateur lors de l'entretien de
 // parcours professionnel : Word A4 recto-verso, charte Victimes & Préjudices Avocats.
 //
 // Usage :
@@ -235,7 +235,7 @@ const enTeteSuite = new Header({
 
 const lignesSources = (avecLisere) => p([
   ...(avecLisere ? [imageFlottante("lisere.png", 0, 297 - 2.2, 210)] : []),
-  t(`Informations à jour au ${DATE_MAJ} – sources : apec.fr, ara.avenir-actifs.org, vae.gouv.fr, moncompteformation.gouv.fr. Montants et règles susceptibles d'évoluer.`, { size: 12, color: C.secondaire }),
+  t(`À jour au ${DATE_MAJ} – sources : apec.fr, ara.avenir-actifs.org, vae.gouv.fr, moncompteformation.gouv.fr, opcoep.fr, enadep.com. Montants et règles susceptibles d'évoluer.`, { size: 12, color: C.secondaire }),
   new TextRun({ children: ["\t", PageNumber.CURRENT, " / ", PageNumber.TOTAL_PAGES], font: TITRE_M, size: 13, color: C.ardoise }),
 ], { tabStops: [{ type: TabStopType.RIGHT, position: LARGEUR }] });
 
@@ -265,7 +265,7 @@ const piedSuite = new Footer({
       entreeMemo(0, "pastille_cep.png", C.rouge, "Conseil en évolution professionnelle", "mon-cep.org", ["Apec 0 809 361 212", "Avenir Actifs 09 72 01 02 03"]),
       entreeMemo(1, "pastille_vae.png", C.orangeTexte, "Validation des acquis de l'expérience", "vae.gouv.fr", "Candidature et suivi de votre parcours en ligne"),
       entreeMemo(2, "pastille_cpf.png", C.vertTexte, "Compte personnel de formation", "moncompteformation.gouv.fr", "Site et application Mon Compte Formation"),
-      entreeMemo(3, "pastille_dot.png", C.ardoise, "Dotation de l'employeur", "Votre responsable ou le service RH", "Pour construire un projet de formation commun"),
+      entreeMemo(3, "pastille_dot.png", C.ardoise, "Dotation du cabinet", "Votre responsable au cabinet", ["Formations métier :", "enadep.com"]),
     ]),
     p([], { spacing: { after: dxa(5) } }),
     lignesSources(true),
@@ -288,7 +288,7 @@ const ouverture = [
   p(t("Quatre dispositifs à connaître", { size: 21 }), { spacing: { after: 70 }, indent: { right: RETRAIT_TITRE } }),
   p([
     surtitre("CEP", C.rouge, 13), sep(), surtitre("VAE", C.orangeTexte, 13), sep(),
-    surtitre("CPF", C.vertTexte, 13), sep(), surtitre("DOTATION DE L'EMPLOYEUR", C.ardoise, 13),
+    surtitre("CPF", C.vertTexte, 13), sep(), surtitre("DOTATION DU CABINET", C.ardoise, 13),
   ], { indent: { right: RETRAIT_TITRE } }),
   espace(13),
 ];
@@ -300,11 +300,11 @@ const cep = module({
   titre: "Le conseil en évolution professionnelle",
   accroche: accroche("Un service public ", fort("gratuit, confidentiel et personnalisé"),
     " pour faire le point sur vos compétences, clarifier un projet, préparer une reconversion ou choisir une formation. Vous le sollicitez à votre initiative, ",
-    fort("sans l'accord de votre employeur"), "."),
+    fort("sans l'accord du cabinet"), "."),
   contenu: [
     cartes(colonnes(2, PRINCIPALE), [
-      contact("CADRES ET JEUNES DIPLÔMÉ(E)S", "Apec", "0 809 361 212", "Du lundi au vendredi, 9 h – 19 h", "apec.fr", "600 consultants en France"),
-      contact("SALARIÉ(E)S DU PRIVÉ · AURA", "Mon CEP · Avenir Actifs", "09 72 01 02 03", "Lun.–ven. 8 h – 19 h, sam. 9 h – 12 h", "ara.avenir-actifs.org", "130 lieux d'accueil ou à distance"),
+      contact("CADRES · AVOCAT(E)S SALARIÉ(E)S", "Apec", "0 809 361 212", "Du lundi au vendredi, 9 h – 19 h", "apec.fr", "Plus de 600 consultants en France"),
+      contact("TOUS LES SALARIÉ(E)S · AURA", "Mon CEP · Avenir Actifs", "09 72 01 02 03", "Lun.–ven. 8 h – 19 h, sam. 9 h – 12 h", "ara.avenir-actifs.org", "130 lieux, dont Grenoble et Annecy"),
     ]),
     note([
       g("Comment ? ", { size: 16 }),
@@ -333,12 +333,12 @@ const vae = module({
     espace(3),
     cartes(colonnes(2, PRINCIPALE), [
       fait(C.orangeTexte, "1 référent", "l'architecte accompagnateur de parcours, du diagnostic jusqu'au jury"),
-      fait(C.orangeTexte, "CPF", "pour financer, avec l'appui possible de l'employeur, de l'OPCO ou de la Région"),
+      fait(C.orangeTexte, "CPF", "pour financer, avec l'appui possible du cabinet, de l'OPCO EP ou de la Région"),
     ]),
     note([
       g("Comment ? ", { size: 16 }),
       t("Candidature en ligne sur ", { size: 16 }), g("vae.gouv.fr", { size: 16 }),
-      t(" ; congé VAE à demander par écrit à votre employeur.", { size: 16 }),
+      t(" ; congé VAE à demander par écrit au cabinet.", { size: 16 }),
     ]),
   ],
 });
@@ -359,32 +359,37 @@ const cpf = module({
     cartes(colonnes(3, PRINCIPALE), [
       fait(C.vertTexte, "500 €", "par an, jusqu'à 5 000 € – salarié(e) à mi-temps ou plus"),
       fait(C.vertTexte, "800 €", "par an, jusqu'à 8 000 € – sans diplôme de niveau CAP-BEP, ou travailleur handicapé bénéficiaire de l'OETH"),
-      fait(C.vertTexte, "150 €", "de participation par formation en 2026, non due si l'employeur cofinance"),
+      fait(C.vertTexte, "150 €", "de participation par formation depuis le 2 avril 2026, non due si le cabinet cofinance"),
     ]),
     espace(3.5),
     puce("puceVert", [g("Plafonds depuis le 20 février 2026 : ", { size: 16 }), t("bilan de compétences 1 600 € (un tous les 5 ans), certifications du Répertoire spécifique 1 500 €, permis B 900 € (avec un cofinancement).", { size: 16 })]),
-    puce("puceVert", [g("Hors temps de travail : ", { size: 16 }), t("aucune autorisation. ", { size: 16 }), g("Sur le temps de travail : ", { size: 16 }), t("accord de l'employeur à demander 60 jours avant (120 jours si la formation dure 6 mois ou plus) ; sans réponse sous 30 jours, la demande est acceptée.", { size: 16 })]),
+    puce("puceVert", [g("Hors temps de travail : ", { size: 16 }), t("aucune autorisation. ", { size: 16 }), g("Sur le temps de travail : ", { size: 16 }), t("accord du cabinet à demander 60 jours avant (120 jours si la formation dure 6 mois ou plus) ; sans réponse sous 30 jours, la demande est acceptée.", { size: 16 })]),
   ],
 });
 
 const dotation = module({
   pastille: "pastille_dot.png",
-  question: "Ce projet sert aussi l'entreprise ?",
+  question: "Ce projet sert aussi le cabinet ?",
   numero: "04", surtitreTexte: "CONSTRUIRE ENSEMBLE", couleur: C.ardoise,
-  titre: "La dotation de l'employeur",
-  accroche: accroche("Votre employeur peut ", fort("abonder votre CPF"),
+  titre: "La dotation du cabinet",
+  accroche: accroche("Le cabinet peut ", fort("abonder votre CPF"),
     " pour financer tout ou partie d'une formation ", fort("définie ensemble"),
-    ", qui répond à vos souhaits et aux besoins de l'entreprise."),
+    ", qui répond à vos souhaits et à ses besoins."),
   contenu: [
     cartes(colonnes(2, PRINCIPALE), [
-      fait(C.ardoise, "En premier", "la dotation est utilisée avant vos droits CPF, qui complètent si nécessaire ; vous en êtes averti(e) sur votre compte"),
-      fait(C.ardoise, "0 € à payer", "la participation de 150 € n'est pas due en cas de cofinancement ; l'OPCO ou la Région peuvent aussi compléter"),
+      fait(C.ardoise, "En premier", "la dotation du cabinet est utilisée avant vos droits CPF, qui complètent si nécessaire ; vous en êtes averti(e) sur votre compte"),
+      fait(C.ardoise, "150 € non dus", "la participation obligatoire n'est pas demandée en cas de cofinancement ; l'OPCO EP ou la Région peuvent aussi compléter"),
     ]),
+    note([
+      g("Formations métier : ", { size: 16 }),
+      t("l'ENADEP (", { size: 16 }), g("enadep.com", { size: 16 }),
+      t(") forme le personnel des cabinets d'avocats ; ses formations peuvent être prises en charge par le cabinet ou l'OPCO EP, selon ses règles.", { size: 16 }),
+    ], dxa(3.5)),
     p([
       image("ico_idee.png", 7),
       t("   ", { size: 16 }),
       g("Un projet de formation en tête ? ", { size: 17, color: C.ardoise }),
-      t("Parlez-en à votre responsable ou au service RH.", { size: 17 }),
+      t("Parlez-en à votre responsable au cabinet.", { size: 17 }),
     ], { spacing: { before: dxa(3.5), after: 0, line: 250 } }),
   ],
 });

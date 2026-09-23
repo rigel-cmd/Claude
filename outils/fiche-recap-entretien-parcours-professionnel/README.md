@@ -7,7 +7,13 @@ son entretien de parcours professionnel. Elle porte exclusivement sur les quatre
 1. le conseil en évolution professionnelle (CEP) ;
 2. la validation des acquis de l'expérience (VAE) ;
 3. le compte personnel de formation (CPF) ;
-4. la dotation de l'employeur.
+4. la dotation du cabinet (abondement du CPF par l'employeur).
+
+Le contenu est adapté au cabinet :
+- **vocabulaire :** « le cabinet » plutôt que « l'entreprise » ou « l'employeur » ;
+- **acteurs de la branche des cabinets d'avocats :** l'OPCO EP (opérateur de compétences de la branche) et l'ENADEP (école de formation du personnel des avocats) ;
+- **lieux d'accueil Mon CEP à Grenoble et Annecy**, là où le cabinet est implanté ;
+- **carte Apec :** elle cible les cadres du cabinet, dont les avocat(e)s salarié(e)s.
 
 | Fichier | Usage |
 |---|---|
@@ -26,12 +32,12 @@ Chaque dispositif suit la même grille éditoriale à deux colonnes :
   - **01 · CEP :** contacts Apec et Mon CEP par Avenir Actifs, déroulé, autres situations.
   - **02 · VAE :** quatre chiffres clés (congé de 48 h, 6 à 8 mois, 1 référent, financement CPF) et démarche.
 - **Verso**
-  - **03 · CPF :** 500 €, 800 € et 150 €, plafonds 2026, règles d'absence.
-  - **04 · Dotation de l'employeur :** dotation mobilisée en premier, participation non due.
+  - **03 · CPF :** 500 € et 800 € par an, participation de 150 € depuis le 2 avril 2026, plafonds 2026, règles d'absence.
+  - **04 · Dotation du cabinet :** dotation mobilisée en premier, participation de 150 € non due, formations métier de l'ENADEP.
   - Bandeau de clôture en vague, qui porte le mémo « Où vous informer ? » (placé dans le pied de page du verso pour rester calé en bas).
 
 **Sources :** apec.fr, ara.avenir-actifs.org, vae.gouv.fr, moncompteformation.gouv.fr et son portail
-employeurs. Informations à jour au 23 septembre 2026 : les montants du CPF sont révisés régulièrement,
+employeurs, opcoep.fr, enadep.com. Informations à jour au 23 septembre 2026 : les montants du CPF sont révisés régulièrement,
 vérifiez-les avant chaque réimpression.
 
 ## Charte appliquée
