@@ -57,7 +57,7 @@ const typo = (s) => s
   .replace(/ ([:;?!])/g, NBSP + "$1")
   .replace(/« /g, "«" + NBSP).replace(/ »/g, NBSP + "»")
   .replace(/(\d) (?=€|h\b|jours|mois|ans|min|salarié|lieux|consultants)/g, "$1" + NBSP)
-  .replace(/(\d) (\d{3})/g, "$1" + NBSP + "$2");
+  .replace(/(\d) (?=\d)/g, "$1" + NBSP);
 const t = (text, o = {}) => new TextRun({ text: typo(text), font: TEXTE, size: 17, color: C.anthracite, ...o });
 const g = (text, o = {}) => t(text, { font: TEXTE_G, ...o });
 const titreRun = (text, size, color, o = {}) => new TextRun({ text: typo(text), font: TITRE, size, color, ...o });
@@ -156,34 +156,71 @@ const espace = (mm) => new Paragraph({ children: [], spacing: { before: 0, after
 const puce = (ref, enfants) =>
   new Paragraph({ children: [].concat(enfants), numbering: { reference: ref, level: 0 }, spacing: { after: 60, line: 259, lineRule: "auto" } });
 
-// En-tête de section : pastille pictogramme + surtitre + titre
-function enteteSection(pastille, numero, surtitreTexte, couleurTexte, titre, nouvellePage = false) {
-  const l1 = dxa(14);
+// ---------------------------------------------------------------------------
+// Grille éditoriale des modules : colonne d'appel (pastille + question) et colonne
+// principale (surtitre, titre, accroche, faits). Une seule surface (crème clair) ;
+// la couleur de chaque dispositif ne sert qu'aux accents.
+// ---------------------------------------------------------------------------
+const CREME_CLAIR = "FDF8E6";
+const FILET = "DCD8D2";
+const RAIL = dxa(36);
+const ENTRE = dxa(6);
+const PRINCIPALE = LARGEUR - RAIL - ENTRE; // 136 mm
+
+function module({ pastille, question, numero, surtitreTexte, couleur, titre, accroche, contenu, nouvellePage = false }) {
   return [
-    new Paragraph({ children: [], pageBreakBefore: nouvellePage, spacing: { after: 0, line: 60, lineRule: "exact" } }),
-    grille([l1, LARGEUR - l1], [
-      cellule(l1, [p(image(pastille, 11.5))], { vAlign: VerticalAlign.CENTER }),
-      cellule(LARGEUR - l1, [
-        p(surtitre(`${numero}  ·  ${surtitreTexte}`, couleurTexte), { spacing: { after: 10 } }),
-        p(titreRun(titre, 27, C.ardoise), { spacing: { after: 0, line: 250 } }),
-      ], { vAlign: VerticalAlign.CENTER }),
+    new Paragraph({ children: [], pageBreakBefore: nouvellePage, spacing: { after: 0, line: 40, lineRule: "exact" } }),
+    grille([RAIL, ENTRE, PRINCIPALE], [
+      cellule(RAIL, [
+        p(image(pastille, 12), { spacing: { after: dxa(3.5) } }),
+        p(titreRun(question, 18, C.ardoise), { spacing: { after: 0, line: 250 }, indent: { right: dxa(2) } }),
+      ]),
+      cellule(ENTRE, []),
+      cellule(PRINCIPALE, [
+        p(surtitre(`${numero}  ·  ${surtitreTexte}`, couleur, 13), { spacing: { after: 30 } }),
+        p(titreRun(titre, 31, C.ardoise), { spacing: { after: 90, line: 240 } }),
+        p([].concat(accroche), { spacing: { after: dxa(3.5), line: 276 } }),
+        ...contenu,
+      ]),
     ]),
-    espace(2.5),
   ];
 }
 
-// Carte « chiffre clé »
-const chiffre = (valeur, libelle, couleur, fond, tailleValeur = 32) => ({
-  fond,
-  marges: { top: 130, bottom: 130, left: 150, right: 150 },
-  enfants: [
-    p(titreRun(valeur, tailleValeur, couleur), { spacing: { after: 20, line: 240 } }),
-    p(t(libelle, { size: 15, color: C.secondaire }), { spacing: { after: 0, line: 240 } }),
-  ],
+const separateur = () => p([], {
+  border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: FILET, space: 1 } },
+  spacing: { before: dxa(4.5), after: dxa(5.5) },
 });
 
-const ligneIcone = (icone, enfants, after = 50) =>
-  p([image(icone, 3.4), t("  ", { size: 15 }), ...[].concat(enfants)], { spacing: { after, line: 250 } });
+// Carte : fond crème clair, filet supérieur dans la couleur du dispositif
+const carte = (couleur, enfants, marges = { top: 110, bottom: 115, left: 170, right: 170 }) => ({
+  fond: CREME_CLAIR,
+  bordures: { top: { style: BorderStyle.SINGLE, size: 12, color: couleur } },
+  marges,
+  enfants,
+});
+
+// Chiffre clé
+const fait = (couleur, valeur, libelle) => carte(couleur, [
+  p(titreRun(valeur, 30, couleur), { spacing: { after: 30, line: 240 } }),
+  p(t(libelle, { size: 15, color: C.secondaire }), { spacing: { after: 0, line: 245 } }),
+]);
+
+const accroche = (...morceaux) => morceaux.map((m) => (typeof m === "string" ? t(m, { size: 19 }) : m));
+const fort = (texte) => g(texte, { size: 19 });
+
+const ligneIcone = (icone, enfants, after = 45) =>
+  p([image(icone, 3.2), t("  ", { size: 15 }), ...[].concat(enfants)], { spacing: { after, line: 245 } });
+
+const contact = (etiquette, nom, telephone, horaires, site, complement) => carte(C.rouge, [
+  p(surtitre(etiquette, C.rouge, 12), { spacing: { after: 20 } }),
+  p(titreRun(nom, 23, C.ardoise), { spacing: { after: 70 } }),
+  ligneIcone("ico_tel.png", titreRun(telephone, 21, C.ardoise)),
+  ligneIcone("ico_horaires.png", t(horaires, { size: 15 })),
+  ligneIcone("ico_web.png", g(site, { size: 15 })),
+  ligneIcone("ico_lieu.png", t(complement, { size: 15 }), 0),
+], { top: 140, bottom: 150, left: 180, right: 160 });
+
+const note = (enfants, before = dxa(3)) => p(enfants, { spacing: { before, after: 0, line: 250 } });
 
 // ---------------------------------------------------------------------------
 // En-têtes et pieds de page
@@ -195,178 +232,162 @@ const enTeteSuite = new Header({
     surtitre("FAIRE ÉVOLUER VOTRE PARCOURS PROFESSIONNEL  ·  FICHE D'INFORMATION", C.ardoise, 13),
   ], { spacing: { after: dxa(11) } })],
 });
-const pied = () => new Footer({
-  children: [p([
-    imageFlottante("lisere.png", 0, 297 - 2.2, 210),
-    t(`Informations à jour au ${DATE_MAJ} – sources : apec.fr, ara.avenir-actifs.org, vae.gouv.fr, moncompteformation.gouv.fr. Montants et règles susceptibles d'évoluer.`, { size: 12, color: C.secondaire }),
-    new TextRun({ children: ["\t", PageNumber.CURRENT, " / ", PageNumber.TOTAL_PAGES], font: TITRE_M, size: 13, color: C.ardoise }),
-  ], { tabStops: [{ type: TabStopType.RIGHT, position: LARGEUR }] })],
+
+const lignesSources = (avecLisere) => p([
+  ...(avecLisere ? [imageFlottante("lisere.png", 0, 297 - 2.2, 210)] : []),
+  t(`Informations à jour au ${DATE_MAJ} – sources : apec.fr, ara.avenir-actifs.org, vae.gouv.fr, moncompteformation.gouv.fr. Montants et règles susceptibles d'évoluer.`, { size: 12, color: C.secondaire }),
+  new TextRun({ children: ["\t", PageNumber.CURRENT, " / ", PageNumber.TOTAL_PAGES], font: TITRE_M, size: 13, color: C.ardoise }),
+], { tabStops: [{ type: TabStopType.RIGHT, position: LARGEUR }] });
+
+const piedPremiere = new Footer({ children: [lignesSources(true)] });
+
+// Verso : le pied de page porte le mémo, posé sur le bandeau crème de clôture
+const H_BANDEAU_BAS = 72;
+const COL_MEMO = Array(4).fill(LARGEUR / 4);
+const entreeMemo = (i, pastille, couleur, nom, lien, details) => cellule(COL_MEMO[i], [
+  p(image(pastille, 8.5), { spacing: { after: 70 } }),
+  p(titreRun(nom, 17, C.ardoise), { spacing: { after: 30, line: 235 } }),
+  p(g(lien, { size: 15, color: couleur }), { spacing: { after: 20, line: 235 } }),
+  ...[].concat(details).map((d) => p(t(d, { size: 14, color: C.secondaire }), { spacing: { after: 0, line: 235 } })),
+], {
+  marges: { top: 0, bottom: 0, left: i === 0 ? 0 : 170, right: 120 },
+  bordures: i === 0 ? {} : { left: { style: BorderStyle.SINGLE, size: 4, color: "E3D7A8" } },
+});
+
+const piedSuite = new Footer({
+  children: [
+    p([
+      imageFlottante("bandeau_bas.png", 0, 297 - H_BANDEAU_BAS, 210),
+      surtitre("EN RÉSUMÉ", C.rouge, 13),
+    ], { spacing: { after: 10 } }),
+    p(titreRun("Où vous informer ?", 29, C.ardoise), { spacing: { after: 130 } }),
+    grille(COL_MEMO, [
+      entreeMemo(0, "pastille_cep.png", C.rouge, "Conseil en évolution professionnelle", "mon-cep.org", ["Apec 0 809 361 212", "Avenir Actifs 09 72 01 02 03"]),
+      entreeMemo(1, "pastille_vae.png", C.orangeTexte, "Validation des acquis de l'expérience", "vae.gouv.fr", "Candidature et suivi de votre parcours en ligne"),
+      entreeMemo(2, "pastille_cpf.png", C.vertTexte, "Compte personnel de formation", "moncompteformation.gouv.fr", "Site et application Mon Compte Formation"),
+      entreeMemo(3, "pastille_dot.png", C.ardoise, "Dotation de l'employeur", "Votre responsable ou le service RH", "Pour construire un projet de formation commun"),
+    ]),
+    p([], { spacing: { after: dxa(5) } }),
+    lignesSources(true),
+  ],
 });
 
 // ---------------------------------------------------------------------------
 // Recto
 // ---------------------------------------------------------------------------
 const RETRAIT_TITRE = dxa(55); // laisse la place à la grande feuille du bandeau
+const sep = () => surtitre("   ·   ", C.gris, 13);
 
 const ouverture = [
   p(image("logo.png", 34), { spacing: { after: dxa(5) } }),
-  p(surtitre("FICHE D'INFORMATION", C.rouge, 15), { spacing: { after: 40 } }),
+  p(surtitre("FICHE D'INFORMATION", C.rouge, 15), { spacing: { after: 50 } }),
   p([
-    titreRun("Faire évoluer votre", 46, C.ardoise),
-    titreRun("parcours professionnel", 46, C.rouge, { break: 1 }),
-  ], { spacing: { after: 100, line: 228 }, indent: { right: RETRAIT_TITRE } }),
-  p(t("Quatre dispositifs à connaître", { size: 20 }), { indent: { right: RETRAIT_TITRE } }),
-  p(surtitre("QUEL DISPOSITIF POUR QUEL BESOIN ?", C.secondaire, 13), { spacing: { before: dxa(15), after: 70 } }),
-  cartes(colonnes(4), [
-    ["01", C.rouge, C.tRouge, "Vous vous interrogez sur votre avenir professionnel ?", "Le CEP vous aide à y voir clair"],
-    ["02", C.orangeTexte, C.tOrange, "Votre expérience vaut un diplôme que vous n'avez pas ?", "La VAE la fait reconnaître"],
-    ["03", C.vertTexte, C.tVert, "Vous avez un projet de formation ?", "Votre CPF le finance"],
-    ["04", C.ardoise, C.tArdoise, "Ce projet sert aussi l'entreprise ?", "L'employeur peut le cofinancer"],
-  ].map(([n, couleur, fond, question, reponse]) => ({
-    fond,
-    marges: { top: 120, bottom: 130, left: 160, right: 160 },
-    enfants: [
-      p(titreRun(n, 26, couleur), { spacing: { after: 30, line: 240 } }),
-      p(t(question, { size: 15, color: C.secondaire }), { spacing: { after: 40, line: 240 } }),
-      p(titreRun(reponse, 19, C.ardoise), { spacing: { after: 0, line: 240 } }),
-    ],
-  }))),
+    titreRun("Faire évoluer votre", 50, C.ardoise),
+    titreRun("parcours professionnel", 50, C.rouge, { break: 1 }),
+  ], { spacing: { after: 110, line: 226 }, indent: { right: RETRAIT_TITRE } }),
+  p(t("Quatre dispositifs à connaître", { size: 21 }), { spacing: { after: 70 }, indent: { right: RETRAIT_TITRE } }),
+  p([
+    surtitre("CEP", C.rouge, 13), sep(), surtitre("VAE", C.orangeTexte, 13), sep(),
+    surtitre("CPF", C.vertTexte, 13), sep(), surtitre("DOTATION DE L'EMPLOYEUR", C.ardoise, 13),
+  ], { indent: { right: RETRAIT_TITRE } }),
+  espace(13),
 ];
 
-const cep = [
-  ...enteteSection("pastille_cep.png", "01", "ÊTRE ACCOMPAGNÉ(E)", C.rouge, "Le conseil en évolution professionnelle (CEP)"),
-  cartes(colonnes(3), [
-    ["Gratuit et confidentiel", "Un service public ouvert à tous les actifs, à votre initiative, sans l'accord de votre employeur."],
-    ["Pour quoi faire ?", "Faire le point sur vos compétences, clarifier un projet, préparer une reconversion, choisir une formation ou changer de poste."],
-    ["Comment ?", "Entretiens sur place ou à distance, ateliers, immersions. Vous repartez avec un diagnostic et un plan d'action."],
-  ].map(([titre, texte]) => ({
-    bordures: { top: { style: BorderStyle.SINGLE, size: 12, color: C.rouge } },
-    marges: { top: 90, bottom: 40, left: 0, right: 60 },
-    enfants: [
-      p(titreRun(titre, 19, C.ardoise), { spacing: { after: 30 } }),
-      p(t(texte, { size: 16 }), { spacing: { after: 0, line: 252 } }),
-    ],
-  }))),
-  espace(5),
-  cartes(colonnes(2), [
-    {
-      fond: C.creme,
-      marges: { top: 150, bottom: 150, left: 200, right: 200 },
-      enfants: [
-        p(surtitre("CADRES ET JEUNES DIPLÔMÉ(E)S", C.rouge, 13), { spacing: { after: 20 } }),
-        p(titreRun("Apec", 26, C.ardoise), { spacing: { after: 60 } }),
-        ligneIcone("ico_tel.png", [titreRun("0 809 361 212", 22, C.ardoise), t("   service gratuit + prix d'un appel", { size: 14, color: C.secondaire })]),
-        ligneIcone("ico_horaires.png", t("Du lundi au vendredi, de 9 h à 19 h", { size: 16 })),
-        ligneIcone("ico_web.png", [g("apec.fr", { size: 16 }), t(" › Conseil en évolution professionnelle", { size: 16 })]),
-        ligneIcone("ico_lieu.png", t("600 consultants, rendez-vous individuels ou collectifs", { size: 16 }), 0),
-      ],
-    },
-    {
-      fond: C.tBleu,
-      marges: { top: 150, bottom: 150, left: 200, right: 200 },
-      enfants: [
-        p(surtitre("SALARIÉ(E)S ET INDÉPENDANT(E)S · AURA", C.rouge, 13), { spacing: { after: 20 } }),
-        p(titreRun("Mon CEP par Avenir Actifs", 26, C.ardoise), { spacing: { after: 60 } }),
-        ligneIcone("ico_tel.png", titreRun("09 72 01 02 03", 22, C.ardoise)),
-        ligneIcone("ico_horaires.png", t("Lundi au vendredi 8 h – 19 h, samedi 9 h – 12 h", { size: 16 })),
-        ligneIcone("ico_web.png", g("ara.avenir-actifs.org", { size: 16 })),
-        ligneIcone("ico_lieu.png", t("130 lieux d'accueil, ou à distance (tél., visio, e-mail)", { size: 16 }), 0),
-      ],
-    },
-  ]),
-  p([
-    g("Autres situations  ", { size: 14, color: C.secondaire }),
-    t("moins de 26 ans › Mission locale   ·   situation de handicap › Cap emploi   ·   autre région › ", { size: 14, color: C.secondaire }),
-    g("mon-cep.org", { size: 14, color: C.secondaire }),
-  ], { spacing: { before: 80, after: 0 } }),
-];
+const cep = module({
+  pastille: "pastille_cep.png",
+  question: "Vous vous interrogez sur votre avenir professionnel ?",
+  numero: "01", surtitreTexte: "ÊTRE ACCOMPAGNÉ(E)", couleur: C.rouge,
+  titre: "Le conseil en évolution professionnelle",
+  accroche: accroche("Un service public ", fort("gratuit, confidentiel et personnalisé"),
+    " pour faire le point sur vos compétences, clarifier un projet, préparer une reconversion ou choisir une formation. Vous le sollicitez à votre initiative, ",
+    fort("sans l'accord de votre employeur"), "."),
+  contenu: [
+    cartes(colonnes(2, PRINCIPALE), [
+      contact("CADRES ET JEUNES DIPLÔMÉ(E)S", "Apec", "0 809 361 212", "Du lundi au vendredi, 9 h – 19 h", "apec.fr", "600 consultants en France"),
+      contact("SALARIÉ(E)S DU PRIVÉ · AURA", "Mon CEP · Avenir Actifs", "09 72 01 02 03", "Lun.–ven. 8 h – 19 h, sam. 9 h – 12 h", "ara.avenir-actifs.org", "130 lieux d'accueil ou à distance"),
+    ]),
+    note([
+      g("Comment ? ", { size: 16 }),
+      t("Entretiens sur place ou à distance, ateliers, immersions : vous repartez avec un diagnostic et un plan d'action.", { size: 16 }),
+    ]),
+    note([
+      g("Autres situations ", { size: 14, color: C.secondaire }),
+      t("moins de 26 ans › Mission locale  ·  situation de handicap › Cap emploi  ·  autre région › ", { size: 14, color: C.secondaire }),
+      g("mon-cep.org", { size: 14, color: C.secondaire }),
+    ], dxa(1.5)),
+  ],
+});
 
-const vae = [
-  espace(6),
-  ...enteteSection("pastille_vae.png", "02", "FAIRE RECONNAÎTRE SON EXPÉRIENCE", C.orangeTexte, "La validation des acquis de l'expérience (VAE)"),
-  cartes(colonnes(4), [
-    chiffre("48 h", "de congé VAE sur le temps de travail, rémunération maintenue", C.orangeTexte, C.tOrange),
-    chiffre("6 à 8 mois", "de parcours, pour certains diplômes", C.orangeTexte, C.tOrange),
-    chiffre("CPF", "pour financer, avec l'appui possible de l'employeur, de l'OPCO ou de la Région", C.orangeTexte, C.tOrange),
-    chiffre("1 référent", "l'architecte accompagnateur de parcours, du diagnostic au jury", C.orangeTexte, C.tOrange),
-  ]),
-  espace(3),
-  puce("puceOrange", [t("Obtenez "), g("tout ou partie d'un diplôme, d'un titre ou d'un CQP"), t(" grâce à votre expérience professionnelle, bénévole ou syndicale, "), g("sans condition de durée"), t(". Candidature sur "), g("vae.gouv.fr"), t(" ; congé VAE à demander par écrit à votre employeur.")]),
-];
+const vae = module({
+  pastille: "pastille_vae.png",
+  question: "Votre expérience vaut un diplôme que vous n'avez pas ?",
+  numero: "02", surtitreTexte: "FAIRE RECONNAÎTRE SON EXPÉRIENCE", couleur: C.orangeTexte,
+  titre: "La validation des acquis de l'expérience",
+  accroche: accroche("Obtenez ", fort("tout ou partie d'un diplôme, d'un titre ou d'un CQP"),
+    " grâce à votre expérience professionnelle, bénévole ou syndicale, ", fort("sans condition de durée"), "."),
+  contenu: [
+    cartes(colonnes(2, PRINCIPALE), [
+      fait(C.orangeTexte, "48 h", "de congé VAE sur votre temps de travail, rémunération maintenue"),
+      fait(C.orangeTexte, "6 à 8 mois", "de parcours pour certains diplômes"),
+    ]),
+    espace(3),
+    cartes(colonnes(2, PRINCIPALE), [
+      fait(C.orangeTexte, "1 référent", "l'architecte accompagnateur de parcours, du diagnostic jusqu'au jury"),
+      fait(C.orangeTexte, "CPF", "pour financer, avec l'appui possible de l'employeur, de l'OPCO ou de la Région"),
+    ]),
+    note([
+      g("Comment ? ", { size: 16 }),
+      t("Candidature en ligne sur ", { size: 16 }), g("vae.gouv.fr", { size: 16 }),
+      t(" ; congé VAE à demander par écrit à votre employeur.", { size: 16 }),
+    ]),
+  ],
+});
 
 // ---------------------------------------------------------------------------
 // Verso
 // ---------------------------------------------------------------------------
-const cpf = [
-  ...enteteSection("pastille_cpf.png", "03", "SE FORMER", C.vertTexte, "Votre compte personnel de formation (CPF)", true),
-  cartes(colonnes(3), [
-    chiffre("500 €", "crédités par an, jusqu'à 5 000 € – salarié(e) à mi-temps ou plus", C.vertTexte, C.tVert, 36),
-    chiffre("800 €", "par an, jusqu'à 8 000 € – sans diplôme de niveau CAP-BEP, ou bénéficiaire de l'obligation d'emploi des travailleurs handicapés", C.vertTexte, C.tVert, 36),
-    chiffre("150 €", "de participation par formation en 2026 – non due si votre employeur cofinance", C.vertTexte, C.tVert, 36),
-  ]),
-  espace(3),
-  puce("puceVert", [t("Consultez vos droits et choisissez une formation certifiante sur "), g("moncompteformation.gouv.fr"), t(" ou l'application Mon Compte Formation.")]),
-  puce("puceVert", [t("Depuis le 20 février 2026, certains usages sont plafonnés : "), g("bilan de compétences"), t(" (1 600 € au maximum, un tous les 5 ans), "), g("certifications du Répertoire spécifique"), t(" (1 500 €), "), g("permis B"), t(" (900 €, uniquement avec un cofinancement).")]),
-  puce("puceVert", [g("Hors temps de travail : "), t("aucune autorisation n'est nécessaire. "), g("Sur le temps de travail : "), t("demandez l'accord de votre employeur au moins 60 jours avant (120 jours si la formation dure 6 mois ou plus) ; sans réponse sous 30 jours, la demande est acceptée.")]),
-];
-
-const COL_DOT = [dxa(106), GOUTTIERE * 2, LARGEUR - dxa(106) - GOUTTIERE * 2];
-const dotation = [
-  espace(9),
-  ...enteteSection("pastille_dot.png", "04", "CONSTRUIRE ENSEMBLE", C.ardoise, "La dotation de l'employeur"),
-  grille(COL_DOT, [
-    cellule(COL_DOT[0], [
-      puce("puceArdoise", [t("Votre employeur peut "), g("abonder votre CPF"), t(" (« dotation ») pour financer tout ou partie d'une formation "), g("définie ensemble"), t(", qui répond à vos souhaits et aux besoins de l'entreprise.")]),
-      puce("puceArdoise", [t("Vous êtes averti(e) sur votre compte : la dotation est utilisée en premier, vos droits CPF complètent si nécessaire.")]),
-      puce("puceArdoise", [t("Avec ce cofinancement, "), g("vous n'avez pas à payer la participation de 150 €"), t(". L'OPCO ou la Région peuvent aussi compléter.")]),
+const cpf = module({
+  nouvellePage: true,
+  pastille: "pastille_cpf.png",
+  question: "Vous avez un projet de formation ?",
+  numero: "03", surtitreTexte: "SE FORMER", couleur: C.vertTexte,
+  titre: "Le compte personnel de formation",
+  accroche: accroche("Votre compte est crédité ", fort("chaque année, automatiquement"),
+    ", tant que vous travaillez. Consultez vos droits et choisissez une formation certifiante sur ",
+    fort("moncompteformation.gouv.fr"), " ou l'application Mon Compte Formation."),
+  contenu: [
+    cartes(colonnes(3, PRINCIPALE), [
+      fait(C.vertTexte, "500 €", "par an, jusqu'à 5 000 € – salarié(e) à mi-temps ou plus"),
+      fait(C.vertTexte, "800 €", "par an, jusqu'à 8 000 € – sans diplôme de niveau CAP-BEP, ou travailleur handicapé bénéficiaire de l'OETH"),
+      fait(C.vertTexte, "150 €", "de participation par formation en 2026, non due si l'employeur cofinance"),
     ]),
-    cellule(COL_DOT[1], []),
-    cellule(COL_DOT[2], [
-      p(image("ico_idee.png", 9), { spacing: { after: 60 } }),
-      p(titreRun("Un projet de formation en tête ?", 21, C.ardoise), { spacing: { after: 40, line: 245 } }),
-      p(t("Parlez-en à votre responsable ou au service RH : ensemble, vous pouvez en construire le financement.", { size: 16 }), { spacing: { after: 0, line: 252 } }),
-    ], { fond: C.creme, marges: { top: 150, bottom: 150, left: 200, right: 200 } }),
-  ]),
-];
+    espace(3.5),
+    puce("puceVert", [g("Plafonds depuis le 20 février 2026 : ", { size: 16 }), t("bilan de compétences 1 600 € (un tous les 5 ans), certifications du Répertoire spécifique 1 500 €, permis B 900 € (avec un cofinancement).", { size: 16 })]),
+    puce("puceVert", [g("Hors temps de travail : ", { size: 16 }), t("aucune autorisation. ", { size: 16 }), g("Sur le temps de travail : ", { size: 16 }), t("accord de l'employeur à demander 60 jours avant (120 jours si la formation dure 6 mois ou plus) ; sans réponse sous 30 jours, la demande est acceptée.", { size: 16 })]),
+  ],
+});
 
-// Mémo final : où s'informer pour chaque dispositif
-const COL_MEMO = colonnes(2);
-const MARGE_MEMO = 180;
-const memo = (pastille, fond, couleur, nom, lien, detail, largeur) => {
-  const interieur = largeur - 2 * MARGE_MEMO;
-  const l1 = dxa(13);
-  return {
-    fond,
-    marges: { top: 150, bottom: 150, left: MARGE_MEMO, right: MARGE_MEMO },
-    enfants: [grille([l1, interieur - l1], [
-      cellule(l1, [p(image(pastille, 10))], { vAlign: VerticalAlign.CENTER }),
-      cellule(interieur - l1, [
-        p(titreRun(nom, 19, C.ardoise), { spacing: { after: 20, line: 240 } }),
-        p(g(lien, { size: 17, color: couleur }), { spacing: { after: 10, line: 240 } }),
-        p(t(detail, { size: 15, color: C.secondaire }), { spacing: { after: 0, line: 240 } }),
-      ], { vAlign: VerticalAlign.CENTER }),
-    ])],
-  };
-};
-
-const ouSInformer = [
-  espace(26),
-  p(surtitre("EN RÉSUMÉ", C.rouge, 13), { spacing: { after: 10 } }),
-  p(titreRun("Où vous informer ?", 27, C.ardoise), { spacing: { after: 110 } }),
-  cartes(COL_MEMO, [
-    memo("pastille_cep.png", C.tRouge, C.rouge, "Conseil en évolution professionnelle", "mon-cep.org",
-      "Apec 0 809 361 212 · Avenir Actifs 09 72 01 02 03", COL_MEMO[0]),
-    memo("pastille_vae.png", C.tOrange, C.orangeTexte, "Validation des acquis de l'expérience", "vae.gouv.fr",
-      "Candidature en ligne et suivi de votre parcours", COL_MEMO[2]),
-  ]),
-  espace(4),
-  cartes(COL_MEMO, [
-    memo("pastille_cpf.png", C.tVert, C.vertTexte, "Compte personnel de formation", "moncompteformation.gouv.fr",
-      "Site et application Mon Compte Formation", COL_MEMO[0]),
-    memo("pastille_dot.png", C.tArdoise, C.ardoise, "Dotation de l'employeur", "Votre responsable ou le service RH",
-      "Pour construire un projet de formation commun", COL_MEMO[2]),
-  ]),
-];
+const dotation = module({
+  pastille: "pastille_dot.png",
+  question: "Ce projet sert aussi l'entreprise ?",
+  numero: "04", surtitreTexte: "CONSTRUIRE ENSEMBLE", couleur: C.ardoise,
+  titre: "La dotation de l'employeur",
+  accroche: accroche("Votre employeur peut ", fort("abonder votre CPF"),
+    " pour financer tout ou partie d'une formation ", fort("définie ensemble"),
+    ", qui répond à vos souhaits et aux besoins de l'entreprise."),
+  contenu: [
+    cartes(colonnes(2, PRINCIPALE), [
+      fait(C.ardoise, "En premier", "la dotation est utilisée avant vos droits CPF, qui complètent si nécessaire ; vous en êtes averti(e) sur votre compte"),
+      fait(C.ardoise, "0 € à payer", "la participation de 150 € n'est pas due en cas de cofinancement ; l'OPCO ou la Région peuvent aussi compléter"),
+    ]),
+    p([
+      image("ico_idee.png", 7),
+      t("   ", { size: 16 }),
+      g("Un projet de formation en tête ? ", { size: 17, color: C.ardoise }),
+      t("Parlez-en à votre responsable ou au service RH.", { size: 17 }),
+    ], { spacing: { before: dxa(3.5), after: 0, line: 250 } }),
+  ],
+});
 
 // ---------------------------------------------------------------------------
 // Document
@@ -409,8 +430,8 @@ const doc = new Document({
       },
     },
     headers: { first: enTetePremiere, default: enTeteSuite },
-    footers: { first: pied(), default: pied() },
-    children: [...ouverture, ...cep, ...vae, ...cpf, ...dotation, ...ouSInformer],
+    footers: { first: piedPremiere, default: piedSuite },
+    children: [...ouverture, ...cep, separateur(), ...vae, ...cpf, separateur(), ...dotation],
   }],
 });
 

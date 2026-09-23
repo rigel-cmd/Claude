@@ -16,15 +16,19 @@ son entretien de parcours professionnel. Elle porte exclusivement sur les quatre
 
 ## Contenu
 
+Chaque dispositif suit la même grille éditoriale à deux colonnes :
+
+- **colonne d'appel :** la pastille pictogramme et la question-besoin ;
+- **colonne principale :** surtitre numéroté, titre, phrase d'accroche, puis les faits (cartes crème clair à filet de couleur, chiffres clés).
+
 - **Recto**
-  - Titre « Faire évoluer votre parcours professionnel ».
-  - Quatre cartes « Quel dispositif pour quel besoin ? ».
-  - **01 · CEP :** principes (gratuit, confidentiel, sans accord de l'employeur), contacts Apec et Mon CEP par Avenir Actifs (Auvergne-Rhône-Alpes), autres situations.
-  - **02 · VAE :** chiffres clés (congé de 48 h, 6 à 8 mois, financement CPF, accompagnateur), puis démarche sur vae.gouv.fr.
+  - Bandeau d'ouverture « Faire évoluer votre parcours professionnel », avec le sommaire CEP · VAE · CPF · Dotation.
+  - **01 · CEP :** contacts Apec et Mon CEP par Avenir Actifs, déroulé, autres situations.
+  - **02 · VAE :** quatre chiffres clés (congé de 48 h, 6 à 8 mois, 1 référent, financement CPF) et démarche.
 - **Verso**
-  - **03 · CPF :** 500 € et 800 € par an, participation de 150 €, plafonds 2026, règles d'absence.
-  - **04 · Dotation de l'employeur :** cofinancement d'un projet commun, exonération de la participation.
-  - Mémo « Où vous informer ? » : le site et les contacts de chaque dispositif.
+  - **03 · CPF :** 500 €, 800 € et 150 €, plafonds 2026, règles d'absence.
+  - **04 · Dotation de l'employeur :** dotation mobilisée en premier, participation non due.
+  - Bandeau de clôture en vague, qui porte le mémo « Où vous informer ? » (placé dans le pied de page du verso pour rester calé en bas).
 
 **Sources :** apec.fr, ara.avenir-actifs.org, vae.gouv.fr, moncompteformation.gouv.fr et son portail
 employeurs. Informations à jour au 23 septembre 2026 : les montants du CPF sont révisés régulièrement,
@@ -35,9 +39,9 @@ vérifiez-les avant chaque réimpression.
 - **Couleurs :** palette élargie du cabinet. Crème `#FAF0C7` pour les fonds, rouge `#B52026`, orange `#FCAF19` et vert `#8EC33F` pour les accents, bleu clair `#BCDEF0`, ardoise `#304859` pour les titres, anthracite `#333333` pour le texte. Les fonds de cartes sont des teintes claires de ces couleurs. Pour l'orange et le vert, le texte utilise une nuance foncée, pour rester lisible.
 - **Polices :** Poppins (SemiBold, Medium) pour les titres, Open Sans (Regular, SemiBold) pour le texte.
 - **Éléments graphiques :**
-  - bandeau crème à vague, avec la feuille du logo en grand ;
-  - pastilles pictogrammes par dispositif, cartes et chiffres clés ;
-  - liseré tricolore en pied de page.
+  - bandeau crème à vague en ouverture (avec la feuille du logo en grand) et en clôture ;
+  - une seule surface pour les cartes (crème clair `#FDF8E6`), la couleur de chaque dispositif étant réservée aux accents (pastille, surtitre, filet, chiffres, puces) ;
+  - filets de séparation entre modules et liseré tricolore en pied de page.
 - **Logo :** il a été reconstitué en haute définition à partir du symbole feuille et du nom du cabinet en Open Sans Bold, car l'image fournie était trop peu définie pour l'impression. Si vous disposez du fichier officiel en haute définition, remplacez `ressources/logo.png` (ou l'image directement dans Word : clic droit › Modifier l'image).
 
 ## Régénérer la fiche
@@ -48,7 +52,7 @@ Prérequis : Python 3 avec Pillow, Node.js avec le paquet `docx`, les polices Po
 `material-design-icons-iconfont`).
 
 ```bash
-# 1. Visuels (bandeaux, logo, pastilles, pictogrammes) -> ressources/
+# 1. Visuels (bandeaux d'ouverture et de clôture, logo, pastilles, pictogrammes) -> ressources/
 python3 graphismes.py feuille.png <dossier_polices> <MaterialIcons-Regular.ttf> ressources
 
 # 2. Word avec polices incorporées

@@ -77,14 +77,14 @@ def logo():
 # --------------------------------------------------------------------------
 # Bandeau de la première page (fond crème, vague, grande feuille à droite)
 # --------------------------------------------------------------------------
-def bandeau_p1(h_mm=82):
+def bandeau_p1(h_mm=92):
     W, H = mm(210), mm(h_mm)
 
     def dessin(d, k):
         pts = [(0, 0), (W * k, 0)]
         for i in range(0, 201):
             x = W * (1 - i / 200)
-            y = H * 0.86 + H * 0.07 * math.sin(i / 200 * math.pi * 1.15 + 0.4)
+            y = H * 0.86 + H * 0.07 * math.sin(i / 200 * math.pi * 1.15 - 0.6)
             pts.append((x * k, y * k))
         d.polygon(pts, fill=CREME)
 
@@ -112,6 +112,26 @@ def bandeau_p2(h_mm=17):
     f = feuille(mm(17))
     im.alpha_composite(f, (W - mm(16) - f.width, round((H * 0.8 - f.height) / 2)))
     im.save(os.path.join(SORTIE, "bandeau_p2.png"), dpi=(DPI, DPI))
+
+
+# --------------------------------------------------------------------------
+# Bandeau de clôture du verso (vague crème en haut, feuille discrète), qui porte le mémo
+# --------------------------------------------------------------------------
+def bandeau_bas(h_mm=72):
+    W, H = mm(210), mm(h_mm)
+
+    def dessin(d, k):
+        pts = [(0, H * k), (W * k, H * k)]
+        for i in range(0, 201):
+            x = W * (1 - i / 200)
+            y = H * 0.09 + H * 0.06 * math.sin(i / 200 * math.pi * 1.2 + 2.2)
+            pts.append((x * k, y * k))
+        d.polygon(pts, fill=CREME)
+
+    im = sur_echantillonner(dessin, (W, H), 2)
+    f = feuille(mm(21)).rotate(8, resample=Image.BICUBIC, expand=True)
+    im.alpha_composite(f, (W - mm(16) - f.width, mm(4)))
+    im.save(os.path.join(SORTIE, "bandeau_bas.png"), dpi=(DPI, DPI))
 
 
 # --------------------------------------------------------------------------
@@ -145,6 +165,7 @@ if __name__ == "__main__":
     print("logo", logo())
     bandeau_p1()
     bandeau_p2()
+    bandeau_bas()
     lisere()
     # Pastilles de section : cercle plein couleur de section, pictogramme blanc
     icone("pastille_cep", 0xE87A, BLANC, 12, fond=ROUGE)          # explore
