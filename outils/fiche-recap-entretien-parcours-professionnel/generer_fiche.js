@@ -209,7 +209,7 @@ const RETRAIT_TITRE = dxa(55); // laisse la place à la grande feuille du bandea
 
 const ouverture = [
   p(image("logo.png", 34), { spacing: { after: dxa(5) } }),
-  p(surtitre("FICHE RÉCAPITULATIVE", C.rouge, 15), { spacing: { after: 40 } }),
+  p(surtitre("FICHE REMISE LORS DE VOTRE ENTRETIEN", C.rouge, 15), { spacing: { after: 40 } }),
   p([
     titreRun("Votre entretien de", 46, C.ardoise),
     titreRun("parcours professionnel", 46, C.rouge, { break: 1 }),
@@ -217,11 +217,11 @@ const ouverture = [
   p(t("Faire le point et construire votre évolution professionnelle", { size: 20 }),
     { indent: { right: RETRAIT_TITRE } }),
   p([
-    t("Un temps d'échange consacré à ", { size: 19 }),
+    t("Cet entretien est un temps d'échange consacré à ", { size: 19 }),
     g("vos perspectives d'évolution", { size: 19 }),
-    t(" (compétences, qualifications, formation, mobilité, reconversion), qui ", { size: 19 }),
+    t(" (compétences, formation, mobilité, reconversion) ; il ", { size: 19 }),
     g("ne porte pas sur l'évaluation de votre travail", { size: 19 }),
-    t(". Il a lieu dans l'année suivant votre embauche puis tous les 4 ans, et donne lieu à un compte rendu écrit dont vous recevez une copie.", { size: 19 }),
+    t(". Nous y faisons le point ensemble sur les quatre dispositifs de cette fiche, que vous conservez. Il donne lieu à un compte rendu écrit dont vous recevez une copie.", { size: 19 }),
   ], { spacing: { before: dxa(14), after: dxa(4), line: 264 } }),
   p(surtitre("QUATRE DISPOSITIFS POUR VOUS ACCOMPAGNER", C.secondaire, 13), { spacing: { after: 70 } }),
   cartes(colonnes(3), [
@@ -297,7 +297,7 @@ const vae = [
     chiffre("1 référent", "l'architecte accompagnateur de parcours, du diagnostic au jury", C.orangeTexte, C.tOrange),
   ]),
   espace(3),
-  puce("puceOrange", [t("Obtenez "), g("tout ou partie d'une certification professionnelle"), t(" (diplôme, titre, certificat de qualification professionnelle) grâce à votre expérience professionnelle, bénévole ou syndicale, "), g("sans condition de durée"), t(". Candidature en ligne sur "), g("vae.gouv.fr"), t(" en moins de 10 minutes ; le congé VAE se demande par écrit à votre employeur.")]),
+  puce("puceOrange", [t("Obtenez "), g("tout ou partie d'un diplôme, d'un titre ou d'un CQP"), t(" grâce à votre expérience professionnelle, bénévole ou syndicale, "), g("sans condition de durée"), t(". Candidature sur "), g("vae.gouv.fr"), t(" ; congé VAE à demander par écrit à votre employeur.")]),
 ];
 
 // ---------------------------------------------------------------------------
@@ -329,8 +329,8 @@ const dotation = [
     cellule(COL_DOT[1], []),
     cellule(COL_DOT[2], [
       p(image("ico_idee.png", 9), { spacing: { after: 60 } }),
-      p(titreRun("Parlez-en pendant votre entretien", 21, C.ardoise), { spacing: { after: 40, line: 245 } }),
-      p(t("C'est le bon moment pour imaginer un projet de formation commun et son financement.", { size: 16 }), { spacing: { after: 0, line: 252 } }),
+      p(titreRun("Parlons-en dès aujourd'hui", 21, C.ardoise), { spacing: { after: 40, line: 245 } }),
+      p(t("Cet entretien est le bon moment pour imaginer ensemble un projet de formation et son financement.", { size: 16 }), { spacing: { after: 0, line: 252 } }),
     ], { fond: C.creme, marges: { top: 150, bottom: 150, left: 200, right: 200 } }),
   ]),
 ];
@@ -384,7 +384,7 @@ const fin = [
       fond: C.creme,
       marges: { top: 200, bottom: 200, left: 220, right: 220 },
       enfants: [
-        p(surtitre("À L'ISSUE DE L'ENTRETIEN", C.rouge, 13), { spacing: { after: 20 } }),
+        p(surtitre("À CONVENIR ENSEMBLE", C.rouge, 13), { spacing: { after: 20 } }),
         p(titreRun("Mes prochaines étapes", 26, C.ardoise), { spacing: { after: 140 } }),
         caseACocher("Prendre rendez-vous avec un conseiller en évolution professionnelle"),
         caseACocher("Explorer une VAE sur vae.gouv.fr"),
@@ -401,11 +401,12 @@ const fin = [
       fond: C.tBleu,
       marges: { top: 200, bottom: 200, left: 220, right: 220 },
       enfants: [
-        p(surtitre("POUR GARDER LE FIL", C.rouge, 13), { spacing: { after: 20 } }),
+        p(surtitre("PENDANT L'ENTRETIEN", C.rouge, 13), { spacing: { after: 20 } }),
         p(titreRun("Mes notes", 26, C.ardoise), { spacing: { after: 40 } }),
-        ...Array.from({ length: 4 }, () => ligneVide(COL_FIN[2] - 440)),
-        ligneChamp("CONTACT RH  ", COL_FIN[2] - 440, 300),
-        ligneChamp("FICHE REMISE LE  ", COL_FIN[2] - 440),
+        ...Array.from({ length: 3 }, () => ligneVide(COL_FIN[2] - 440)),
+        ligneChamp("ENTRETIEN DU  ", COL_FIN[2] - 440, 300),
+        ligneChamp("MENÉ PAR  ", COL_FIN[2] - 440),
+        ligneChamp("CONTACT RH  ", COL_FIN[2] - 440),
       ],
     },
   ]),

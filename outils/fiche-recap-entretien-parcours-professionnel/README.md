@@ -1,8 +1,10 @@
 # Fiche récapitulative à remettre lors de l'entretien de parcours professionnel
 
-Fiche A4 recto-verso remise au collaborateur pendant son entretien de parcours professionnel (EPP),
-aux couleurs de **Victimes & Préjudices Avocats**. Elle présente les quatre dispositifs sur lesquels le
-salarié doit être informé à cette occasion.
+Fiche A4 recto-verso remise au collaborateur **lors de** son entretien de parcours professionnel (EPP),
+aux couleurs de **Victimes & Préjudices Avocats**. Elle sert de support à l'échange : elle présente les
+quatre dispositifs sur lesquels le salarié doit être informé pendant l'entretien. Le verso se complète
+avec lui, pendant l'entretien : pistes retenues, notes, date de l'entretien, nom de la personne qui le
+mène et contact RH. Le salarié conserve ensuite la fiche.
 
 | Fichier | Usage |
 |---|---|
@@ -29,7 +31,7 @@ salarié doit être informé à cette occasion.
   - **03 · CPF :** 500 € et 800 € par an, participation de 150 €, plafonds 2026, règles d'absence.
   - **04 · Dotation de l'employeur.**
   - Frise « Le rythme de vos entretiens ».
-  - « Mes prochaines étapes » (cases à cocher) et « Mes notes », avec le contact RH et la date de remise.
+  - « Mes prochaines étapes », à convenir ensemble (cases à cocher), et « Mes notes », avec la date de l'entretien, la personne qui le mène et le contact RH.
 
 **Sources :** apec.fr, ara.avenir-actifs.org, vae.gouv.fr, moncompteformation.gouv.fr et son portail
 employeurs. Informations à jour au 23 septembre 2026 : les montants du CPF sont révisés régulièrement,
