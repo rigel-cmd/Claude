@@ -302,7 +302,7 @@ const missions = section({
   surtitreTexte: "VOS MISSIONS",
   titre: "De la consultation à l'indemnisation",
   contenu: [
-    ["Piloter", "en autonomie un portefeuille de dossiers jusqu'à l'indemnisation définitive",
+    ["Piloter", "un portefeuille de dossiers jusqu'à l'indemnisation définitive",
       "Construire", "des stratégies d'indemnisation sur mesure : analyse des pièces médicales et juridiques, évaluation et chiffrage des préjudices"],
     ["Rédiger", "les actes : assignations, conclusions, consultations, notes de synthèse",
       "Préparer et conduire", "les expertises médicales amiables et judiciaires, en lien étroit avec les médecins de recours et les autres experts"],
@@ -356,7 +356,7 @@ const offre = section({
   surtitreTexte: "CE QUE NOUS VOUS OFFRONS",
   titre: "Une perspective d'association",
   contenu: [
-    paragraphe(["Une ", g("perspective d'association jalonnée dans le temps"), ", et un périmètre de responsabilités large, avec une vraie latitude de décision et une exposition client directe."], dxa(3.5)),
+    paragraphe(["Une ", g("perspective d'association jalonnée d'étapes claires"), ", et un périmètre de responsabilités large, avec une vraie latitude de décision et une exposition client directe."], dxa(3.5)),
     cartes(colonnes(2, PRINCIPALE), [
       tuile("218 jours", "CDI, statut cadre, forfait annuel ; rémunération fixe selon profil et expérience", C.rouge, C.blanc, C.blanc, 26),
       tuile("PEE et PER", "avec abondement du cabinet, en plus des tickets restaurant", C.rouge, C.blanc, C.blanc, 26),

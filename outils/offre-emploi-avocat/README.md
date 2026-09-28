@@ -16,6 +16,12 @@ Deux versions de l'offre, chacune en Word et en PDF (A4 recto-verso) :
   - version contrastée : la phrase ouvre le document, en blanc sur le bandeau ardoise, et la perspective d'association est mise en orange.
 - **Coquille corrigée dans le titre :** il manquait l'espace de « Avocat(e) salarié(e) ».
 
+## Harmonisations propres à la version contrastée
+
+- **Mission « Piloter » :** « un portefeuille de dossiers jusqu'à l'indemnisation définitive » (la mention « en autonomie » est retirée).
+- **Section 04 :** « Une perspective d'association jalonnée d'étapes claires », au lieu de « jalonnée dans le temps », pour ne plus contredire « rapide ».
+- **Sous-titre :** « Un poste évolutif vers une possible association » est remplacé par la phrase clé du recrutement.
+
 ## Version contrastée : principes
 
 - **Bandeau d'ouverture et pied du verso** sur fond ardoise `#304859`, avec le texte en blanc et les accents en orange `#FCAF19`. Le logo est placé en réserve (texte blanc).
