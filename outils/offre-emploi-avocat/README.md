@@ -43,3 +43,23 @@ Les pictogrammes « Informations pratiques » et le liseré viennent de l'offre 
 (`ressources/ico_*.png`, `ressources/lisere.png`). Le PDF est produit à partir d'une copie générée
 sans polices incorporées (`node generer_offre_contrastee.js pour_pdf.docx ressources`), convertie
 avec LibreOffice.
+
+## Budget de diffusion
+
+[`Budget_diffusion_offre_avocat.xlsx`](./Budget_diffusion_offre_avocat.xlsx) estime le budget mensuel de
+la recherche de candidats. Il est généré par `generer_budget.py`.
+
+- **Onglet Budget :**
+  - paramètres : début, durée de la campagne, HT ou TTC, TVA, scénario retenu ;
+  - tableau des plateformes : tarif, facturation (gratuit, forfait, par jour, par semaine, par mois) et quantités mensuelles pour trois scénarios ;
+  - budget du scénario retenu : mensuel moyen, décaissement du 1er mois, total de la campagne en HT et TTC ;
+  - synthèse comparative des scénarios.
+- **Onglet Échéancier :** dépenses du scénario retenu, mois par mois sur 12 mois au plus. Les forfaits sont payés au début de leur période et renouvelés au besoin.
+
+**Scénarios par défaut (modifiables), pour 2 mois :**
+
+| Scénario | Contenu | Mensuel moyen | 1er mois | Total HT |
+|---|---|---:|---:|---:|
+| Essentiel | Gratuits + Village de la Justice | 145 € | 290 € | 290 € |
+| Équilibré | + boosts LinkedIn 15 j et Meta 10 j par mois, Indeed 2 semaines par mois | 595 € | 740 € | 1 190 € |
+| Intensif | + boosts LinkedIn et Meta tous les jours, Indeed 4 semaines par mois | 1 145 € | 1 290 € | 2 290 € |
