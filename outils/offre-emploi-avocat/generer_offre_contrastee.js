@@ -356,7 +356,7 @@ const offre = section({
   surtitreTexte: "CE QUE NOUS VOUS OFFRONS",
   titre: "Une perspective d'association",
   contenu: [
-    paragraphe(["Une ", g("perspective d'association jalonnée d'étapes claires"), ", et un périmètre de responsabilités large, avec une vraie latitude de décision et une exposition client directe."], dxa(3.5)),
+    paragraphe([g("Vous avancez vers l'association par étapes."), " Vous prendrez en charge des responsabilités progressivement."], dxa(3.5)),
     cartes(colonnes(2, PRINCIPALE), [
       tuile("218 jours", "CDI, statut cadre, forfait annuel ; rémunération fixe selon profil et expérience", C.rouge, C.blanc, C.blanc, 26),
       tuile("PEE et PER", "avec abondement du cabinet, en plus des tickets restaurant", C.rouge, C.blanc, C.blanc, 26),
