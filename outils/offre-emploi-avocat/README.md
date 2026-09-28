@@ -31,6 +31,12 @@ Deux versions de l'offre, chacune en Word et en PDF (A4 recto-verso) :
 - **Tuiles « offre » :** pleines, en rouge, complétées de tuiles crème.
 - **Listes de compétences** sous un bandeau d'en-tête sombre.
 - **Texte courant** plus foncé (`#262626`) pour la lisibilité.
+- **Pied du verso « Comment candidater ? » :**
+  - un bloc orange d'appel à candidater, avec l'adresse de candidature ;
+  - trois repères pratiques (lieu, contrat, recrutement), avec des pastilles rouge, orange et vert assorties au liseré ;
+  - une ligne de pied de page sous un filet.
+
+  Le liseré tricolore termine les deux pages.
 
 ## Régénérer la version contrastée
 

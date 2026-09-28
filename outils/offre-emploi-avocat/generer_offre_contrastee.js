@@ -12,7 +12,7 @@ const fs = require("fs");
 const path = require("path");
 const {
   AlignmentType, BorderStyle, CharacterSet, Document, Footer, Header,
-  HorizontalPositionRelativeFrom, ImageRun, LevelFormat, Packer, PageNumber, Paragraph,
+  HorizontalPositionRelativeFrom, ImageRun, LevelFormat, Packer, Paragraph,
   ShadingType, Table, TableCell, TableLayoutType, TableRow, TabStopType, TextRun,
   TextWrappingType, VerticalAlign, VerticalPositionRelativeFrom, WidthType,
 } = require("docx");
@@ -69,7 +69,7 @@ function image(nom, largeurMm) {
   const { l, h, data } = png(nom);
   return new ImageRun({ type: "png", data, transformation: { width: px(largeurMm), height: px((largeurMm * h) / l) } });
 }
-function imageFlottante(nom, xMm, yMm, largeurMm) {
+function imageFlottante(nom, xMm, yMm, largeurMm, zIndex) {
   const { l, h, data } = png(nom);
   return new ImageRun({
     type: "png", data,
@@ -77,6 +77,7 @@ function imageFlottante(nom, xMm, yMm, largeurMm) {
     floating: {
       horizontalPosition: { relative: HorizontalPositionRelativeFrom.PAGE, offset: emu(xMm) },
       verticalPosition: { relative: VerticalPositionRelativeFrom.PAGE, offset: emu(yMm) },
+      zIndex,
       behindDocument: true, allowOverlap: true, lockAnchor: true, layoutInCell: false,
       wrap: { type: TextWrappingType.NONE },
     },
@@ -215,43 +216,83 @@ const enTeteSuite = new Header({
   ], { spacing: { after: dxa(8) } })],
 });
 
-// numero : texte fixe (ex. « 2 / 2 ») ; LibreOffice ignore la couleur des champs de pagination
-// sur fond sombre. À défaut, champ PAGE / NUMPAGES.
-const lignePied = (couleur, numero = null) => p([
-  imageFlottante("lisere.png", 0, 297 - 2.2, 210),
-  t("Offre d'emploi · Victimes & Préjudices Avocats · recrutement@victimesetprejudices.fr", { size: 13, color: couleur }),
-  numero
-    ? new TextRun({ text: "\t" + numero, font: TITRE_M, size: 13, color: couleur })
-    : new TextRun({ children: ["\t", PageNumber.CURRENT, " / ", PageNumber.TOTAL_PAGES], font: TITRE_M, size: 13, color: couleur }),
-], { tabStops: [{ type: TabStopType.RIGHT, position: LARGEUR }] });
+// Numéros de page en texte fixe : LibreOffice n'applique ni la police ni la couleur aux champs
+// de pagination. Le liseré tricolore passe devant le bandeau de clôture (zIndex).
+const lignePied = (couleur, numero, mention, o = {}) => p([
+  imageFlottante("lisere.png", 0, 297 - 2.2, 210, 100000000),
+  t(`Offre d'emploi · Victimes & Préjudices Avocats · ${mention}`, { size: 13, color: couleur }),
+  new TextRun({ text: "\t" + numero, font: TITRE_M, size: 13, color: couleur }),
+], { tabStops: [{ type: TabStopType.RIGHT, position: LARGEUR }], ...o });
 
-const piedPremiere = new Footer({ children: [lignePied(C.secondaire)] });
+const piedPremiere = new Footer({ children: [lignePied(C.secondaire, "1 / 2", "recrutement@victimesetprejudices.fr")] });
 
+// Pied du verso : titre et appel à candidater (bloc orange), puis trois repères pratiques
+// aux couleurs du liseré (rouge, orange, vert).
 const H_CLOTURE = 70;
-const COL_INFO = Array(4).fill(LARGEUR / 4);
-const info = (i, icone, libelle, valeur, details) => cellule(COL_INFO[i], [
-  p(image(icone, 8.5), { spacing: { after: 70 } }),
-  p(titreRun(libelle, 17, C.blanc), { spacing: { after: 20, line: 235 } }),
-  p(g(valeur, { size: 15, color: C.orange }), { spacing: { after: 20, line: 235 } }),
-  ...[].concat(details).map((d) => p(t(d, { size: 14, color: C.creme }), { spacing: { after: 0, line: 235 } })),
-], {
-  marges: { top: 0, bottom: 0, left: i === 0 ? 0 : 170, right: 110 },
-  bordures: i === 0 ? {} : { left: trait(C.ardoiseClair) },
-});
+const CTA = dxa(78);
+const ENTRE_CTA = dxa(6);
+const GAUCHE_CTA = LARGEUR - CTA - ENTRE_CTA;
+const MARGE_CTA = 200;
+const ICO_CTA = dxa(12);
+const TEXTE_CTA = CTA - 2 * MARGE_CTA - ICO_CTA;
+
+// Une seule cellule orange (pas de raccord visible entre deux cellules colorées),
+// avec une grille transparente pour placer le pictogramme à gauche du texte.
+const appelCandidature = grille([CTA], [cellule(CTA, [
+  grille([ICO_CTA, TEXTE_CTA], [
+    cellule(ICO_CTA, [p(image("ico_candidature.png", 8.5), { spacing: { after: 0, line: 240 } })], { vAlign: VerticalAlign.CENTER }),
+    cellule(TEXTE_CTA, [
+      p(surtitre("ENVOYEZ CV ET LETTRE DE MOTIVATION", C.ardoise, 12), { spacing: { after: 30 } }),
+      p(titreRun("recrutement@victimesetprejudices.fr", 17, C.ardoise), { spacing: { after: 0, line: 240 } }),
+    ], { vAlign: VerticalAlign.CENTER }),
+  ]),
+  espace(0.3),
+], { fond: C.orange, marges: { top: 150, bottom: 150, left: MARGE_CTA, right: MARGE_CTA } })]);
+
+const enteteCloture = grille([GAUCHE_CTA, ENTRE_CTA, CTA], [
+  cellule(GAUCHE_CTA, [
+    p(surtitre("INFORMATIONS PRATIQUES", C.orange, 13), { spacing: { after: 20 } }),
+    p(titreRun("Comment candidater ?", 29, C.blanc), { spacing: { after: 40, line: 240 } }),
+    p([
+      g("Nous étudions toutes les candidatures", { size: 16, color: C.blanc }),
+      new TextRun({ text: typo("et nous nous engageons à répondre à chacune."), font: TEXTE, size: 16, color: C.creme, break: 1 }),
+    ], { spacing: { after: 0, line: 259 } }),
+  ]),
+  cellule(ENTRE_CTA, []),
+  cellule(CTA, [appelCandidature, espace(0.3)], { vAlign: VerticalAlign.BOTTOM }),
+]);
+
+const ICONE = dxa(11);
+const ENTRE_INFO = dxa(6);
+const TEXTE_INFO = Math.floor((LARGEUR - 3 * ICONE - 2 * ENTRE_INFO) / 3);
+const COL_INFO = [ICONE, TEXTE_INFO, ENTRE_INFO, ICONE, TEXTE_INFO, ENTRE_INFO, ICONE,
+  LARGEUR - 3 * ICONE - 2 * ENTRE_INFO - 2 * TEXTE_INFO];
+const info = (icone, libelle, valeur, detail) => [
+  cellule(ICONE, [p(image(icone, 8), { spacing: { after: 0, line: 240 } })]),
+  cellule(TEXTE_INFO, [
+    p(titreRun(libelle, 17, C.blanc), { spacing: { after: 10, line: 235 } }),
+    p(g(valeur, { size: 15, color: C.orange }), { spacing: { after: 30, line: 235 } }),
+    p(t(detail, { size: 14, color: C.creme }), { spacing: { after: 0, line: 245 } }),
+  ]),
+];
+const reperes = grille(COL_INFO, [
+  ...info("ico_lieu.png", "Lieu", "Grenoble (38)", "Le cabinet est implanté à Grenoble et à Annecy"),
+  cellule(ENTRE_INFO, []),
+  ...info("ico_contrat.png", "Contrat", "CDI · statut cadre", "Avocat(e) salarié(e), forfait jours (218), association future"),
+  cellule(ENTRE_INFO, []),
+  ...info("ico_processus.png", "Recrutement", "4 étapes", "Un échange téléphonique, puis trois entretiens au cabinet"),
+]);
 
 const piedSuite = new Footer({
   children: [
-    p([imageFlottante("bandeau_cloture.png", 0, 297 - H_CLOTURE, 210), surtitre("INFORMATIONS PRATIQUES", C.orange, 13)], { spacing: { after: 10 } }),
-    p(titreRun("Comment candidater ?", 29, C.blanc), { spacing: { after: 30 } }),
-    p([g("Nous étudions toutes les candidatures", { size: 16, color: C.blanc }), t(" et nous nous engageons à répondre à chacune.", { size: 16, color: C.creme })], { spacing: { after: 140 } }),
-    grille(COL_INFO, [
-      info(0, "ico_lieu.png", "Lieu et prise de poste", "Grenoble (38)", []),
-      info(1, "ico_contrat.png", "Contrat", "CDI · statut cadre", ["Avocat(e) salarié(e), forfait jours (218), association future"]),
-      info(2, "ico_processus.png", "Processus de recrutement", "4 étapes", ["Un échange téléphonique, puis trois entretiens au cabinet"]),
-      info(3, "ico_candidature_rouge.png", "Candidature", "CV et lettre de motivation", ["recrutement@", "victimesetprejudices.fr"]),
-    ]),
-    p([], { spacing: { after: dxa(5) } }),
-    lignePied(C.creme, "2 / 2"),
+    p(imageFlottante("bandeau_cloture.png", 0, 297 - H_CLOTURE, 210), { spacing: { after: 0, line: 20, lineRule: "exact" } }),
+    enteteCloture,
+    espace(6),
+    reperes,
+    lignePied(C.creme, "2 / 2", "victimesetprejudices.fr", {
+      border: { top: { style: BorderStyle.SINGLE, size: 4, color: C.ardoiseClair, space: 6 } },
+      spacing: { before: dxa(5), after: 0, line: 259 },
+    }),
   ],
 });
 
