@@ -97,8 +97,6 @@ def bandeau_cloture(h_mm=70):
         d.polygon(vague([(0, H * k), (W * k, H * k)], W, H, k, 0.08, 0.05, 2.2, 1.2), fill=ARDOISE)
 
     im = sur_echantillonner(dessin, (W, H))
-    f = feuille(mm(21)).rotate(8, resample=Image.BICUBIC, expand=True)
-    im.alpha_composite(f, (W - mm(16) - f.width, mm(4)))
     im.save(os.path.join(SORTIE, "bandeau_cloture.png"), dpi=(DPI, DPI))
 
 
