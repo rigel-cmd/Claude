@@ -55,6 +55,29 @@ Les pictogrammes « Informations pratiques » et le liseré viennent de l'offre 
 sans polices incorporées (`node generer_offre_contrastee.js pour_pdf.docx ressources`), convertie
 avec LibreOffice.
 
+## Version web (page Recrutements du site)
+
+[`web/Offre_emploi_avocat_site.html`](./web/Offre_emploi_avocat_site.html) est un bloc HTML autonome
+(26 Ko), qui reprend le contenu et la charte de la version contrastée. Il se colle tel quel dans :
+- un bloc « HTML personnalisé » (WordPress) ;
+- un widget HTML (Elementor) ;
+- un module Code (Divi).
+
+- **Isolé du thème :** les styles sont embarqués et limités au bloc (`#vpo-offre`). Le thème n'est pas
+  modifié, et ses styles de titres, listes ou liens ne déforment pas l'offre.
+- **Adaptatif :** la mise en page suit la largeur de la zone de contenu, du mobile au bureau.
+- **Sans fichier à téléverser :** la feuille du logo (vectorisée) et les pictogrammes sont en SVG.
+- **Boutons :** « Comment candidater ? » descend vers le pied de l'offre. Le bloc orange ouvre un e-mail
+  prérempli à recrutement@victimesetprejudices.fr.
+- **Google Jobs :** données structurées `JobPosting` (schema.org), générées à partir du même texte.
+  Mettez à jour `DATE_PUBLICATION` à chaque republication.
+- **Polices :** Poppins et Open Sans, si le thème les charge déjà ; sinon, repli sur Arial.
+
+```bash
+python3 web/vectoriser_feuille.py feuille.png web/feuille.svg   # une fois (pip install potracer)
+python3 web/generer_offre_html.py                               # régénère le bloc
+```
+
 ## Budget de diffusion
 
 [`Budget_diffusion_offre_avocat.xlsx`](./Budget_diffusion_offre_avocat.xlsx) estime le budget mensuel de
