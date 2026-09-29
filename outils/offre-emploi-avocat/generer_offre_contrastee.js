@@ -369,7 +369,7 @@ const profil = section({
     cartes(colonnes(3, PRINCIPALE), [
       tuile("CAPA", "", C.ardoise, C.orange, C.blanc),
       tuile("5 ans minimum", "de pratique en cabinet, avec une réelle exposition au contentieux et à la relation client", C.ardoise, C.orange, C.blanc),
-      tuile("+ Spécialisation", "en droit du dommage corporel, en responsabilité médicale ou en droit de la santé serait un plus", C.ardoise, C.orange, C.blanc),
+      tuile("+ Spécialisation", "en droit du dommage corporel, en droit de la santé ou en corporel du travail serait un plus", C.ardoise, C.orange, C.blanc),
     ]),
     p([g("À défaut", { size: 17 }), t(", votre capacité à vous approprier rapidement la matière et à prendre le relais compte davantage qu'une spécialisation déjà acquise.", { size: 17 })],
       { alignment: AlignmentType.JUSTIFIED, spacing: { before: dxa(3.5), after: dxa(3.5), line: 265 } }),

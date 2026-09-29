@@ -24,7 +24,8 @@ Deux versions de l'offre, chacune en Word et en PDF (A4 recto-verso) :
 - **Révisions du cabinet :**
   - le titre devient « Avocat(e) associé(e) salarié(e) ». Il passe en 24 pt pour tenir sur une ligne, à gauche de la grande feuille ;
   - la question de la section 03 devient « Un projet d'association ? » ;
-  - la tuile CAPA ne porte plus la mention « et inscription à un barreau français ».
+  - la tuile CAPA ne porte plus la mention « et inscription à un barreau français » ;
+  - tuile « + Spécialisation » : « en droit du dommage corporel, en droit de la santé ou en corporel du travail ».
 
 ## Version contrastée : principes
 
