@@ -21,6 +21,10 @@ Deux versions de l'offre, chacune en Word et en PDF (A4 recto-verso) :
 - **Mission « Piloter » :** « un portefeuille de dossiers jusqu'à l'indemnisation définitive » (la mention « en autonomie » est retirée).
 - **Section 04 :** « Vous avancez vers l'association par étapes. Vous prendrez en charge des responsabilités progressivement. » remplace « Une perspective d'association jalonnée dans le temps, et un périmètre de responsabilités large, avec une vraie latitude de décision et une exposition client directe ».
 - **Sous-titre :** « Un poste évolutif vers une possible association » est remplacé par la phrase clé du recrutement.
+- **Révisions du cabinet :**
+  - le titre devient « Avocat(e) associé(e) salarié(e) ». Il passe en 24 pt pour tenir sur une ligne, à gauche de la grande feuille ;
+  - la question de la section 03 devient « Un projet d'association ? » ;
+  - la tuile CAPA ne porte plus la mention « et inscription à un barreau français ».
 
 ## Version contrastée : principes
 

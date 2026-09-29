@@ -175,13 +175,13 @@ const mission = (titre, texte) => ({
   ],
 });
 
-// Tuile pleine (valeur + libellé)
+// Tuile pleine (valeur + libellé facultatif)
 const tuile = (valeur, libelle, fond, couleurValeur, couleurTexte, tailleValeur = 22) => ({
   fond,
   marges: { top: 120, bottom: 130, left: 180, right: 160 },
   enfants: [
-    p(titreRun(valeur, tailleValeur, couleurValeur), { spacing: { after: 30, line: 240 } }),
-    p(t(libelle, { size: 15, color: couleurTexte }), { spacing: { after: 0, line: 245 } }),
+    p(titreRun(valeur, tailleValeur, couleurValeur), { spacing: { after: libelle ? 30 : 0, line: 240 } }),
+    ...(libelle ? [p(t(libelle, { size: 15, color: couleurTexte }), { spacing: { after: 0, line: 245 } })] : []),
   ],
 });
 
@@ -304,7 +304,8 @@ const RETRAIT = dxa(52); // laisse la place à la grande feuille
 const ouverture = [
   p(image("logo_reserve.png", 32), { spacing: { after: dxa(5) } }),
   p(surtitre("OFFRE D'EMPLOI  ·  CDI", C.orange, 15), { spacing: { after: 40 } }),
-  p([titreRun("Avocat(e) ", 58, C.blanc), titreRun("salarié(e)", 58, C.orange)], { spacing: { after: 110, line: 240 } }),
+  // 24 pt : le titre tient sur une ligne, à gauche de la grande feuille du bandeau
+  p([titreRun("Avocat(e) associé(e) ", 48, C.blanc), titreRun("salarié(e)", 48, C.orange)], { spacing: { after: 110, line: 240 } }),
   p(t("Nous recherchons aujourd'hui un(e) avocat(e) démontrant un fort leadership et une capacité à prendre à terme le relais dans l'animation du cabinet.", { size: 20, color: C.blanc }),
     { indent: { right: RETRAIT }, spacing: { after: 100, line: 280 } }),
   p(titreRun("Ce poste est créé dans une perspective rapide d'association.", 24, C.orange),
@@ -361,12 +362,12 @@ const COL_LISTES = colonnes(2, PRINCIPALE);
 const profil = section({
   nouvellePage: true,
   numero: "03",
-  appel: question("Vous vous projetez dans un projet d'association ?"),
+  appel: question("Un projet d'association ?"),
   surtitreTexte: "PROFIL RECHERCHÉ",
   titre: "Formation et expérience",
   contenu: [
     cartes(colonnes(3, PRINCIPALE), [
-      tuile("CAPA", "et inscription à un barreau français", C.ardoise, C.orange, C.blanc),
+      tuile("CAPA", "", C.ardoise, C.orange, C.blanc),
       tuile("5 ans minimum", "de pratique en cabinet, avec une réelle exposition au contentieux et à la relation client", C.ardoise, C.orange, C.blanc),
       tuile("+ Spécialisation", "en droit du dommage corporel, en responsabilité médicale ou en droit de la santé serait un plus", C.ardoise, C.orange, C.blanc),
     ]),
