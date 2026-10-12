@@ -60,7 +60,6 @@ Y_TITRE = (361, 395)
 Y_FILET = 407
 Y_ARGUMENT = 428
 Y_BOUTON, H_BOUTON = 441, 32
-Y_PIED = Y_BOUTON + H_BOUTON + 6      # haut du pied crème, commun aux deux scènes
 H_LISERE = 4
 
 # Pied : QR code à gauche (aligné sur le bouton), légende et logo à droite (logo aligné sur le bord droit
@@ -69,6 +68,10 @@ MODULE = 3                   # taille d'un module de QR code, en pixels
 ZONE_CLAIRE = 4 * MODULE     # zone claire exigée autour des modules
 COTE_QR = 33 * MODULE        # QR code de l'offre : version 4, 33 modules
 X_QR, Y_QR = X0, H - H_LISERE - ZONE_CLAIRE - COTE_QR
+# Haut du pied crème, commun aux deux scènes : il commence avec la zone claire du QR code de l'offre, juste
+# sous le bouton, pour que le volet anthracite ne la réduise jamais
+Y_PIED = Y_QR - ZONE_CLAIRE
+assert Y_PIED >= Y_BOUTON + H_BOUTON
 LARGEUR_LOGO = 125
 X_COLONNE = X1 - LARGEUR_LOGO
 
@@ -77,7 +80,7 @@ CREME = (244, 240, 231)
 ANTHRACITE = (51, 51, 51)
 ROUGE = (181, 32, 38)
 ORANGE = (252, 175, 25)
-ORANGE_TEXTE = (168, 106, 0)          # orange foncé de la charte, pour du texte sur fond clair
+ORANGE_TEXTE = (140, 88, 0)           # orange foncé, pour du texte sur crème (contraste 5,3:1)
 VERT = (142, 195, 63)
 ENCRE = (21, 31, 36)
 BLANC = (255, 255, 255)
@@ -169,10 +172,15 @@ def texte_lisse(im, x, y, texte, nom_police, taille, couleur, approche=0.0, k=4)
 
 
 def etiquette(im, code, texte, couleur):
-    """Pictogramme et capitales espacées, comme sur la 4e de couverture."""
-    ImageDraw.Draw(im).text((X0 - 1, Y_ETIQUETTE + 1), chr(code), font=police(ICONES, 20), fill=couleur,
+    """Pictogramme et capitales espacées, comme sur la 4e de couverture. Le pictogramme est centré sur la
+    hauteur des capitales, d'après l'encre du glyphe."""
+    f = police(ICONES, 22)
+    g, h, d, b = f.getbbox(chr(code), anchor="ls")
+    _, haut, _, bas = police(POPPINS, 11).getbbox("E", anchor="ls")
+    milieu_capitales = Y_ETIQUETTE + (haut + bas) / 2
+    ImageDraw.Draw(im).text((X0 - g, round(milieu_capitales - (h + b) / 2)), chr(code), font=f, fill=couleur,
                             anchor="ls")
-    texte_lisse(im, X0 + 26, Y_ETIQUETTE, texte, POPPINS, 11, couleur, approche=1.7)
+    texte_lisse(im, X0 + d - g + 7, Y_ETIQUETTE, texte, POPPINS, 11, couleur, approche=1.7)
 
 
 def titre(d, lignes):
@@ -283,30 +291,32 @@ def monter(scene, volet=None, decalage=0):
     return cadre(im)
 
 
-def volet(dessous, dessus, n=6, duree=40):
-    """Images du volet : le pan de `dessus` monte par-dessus celui de `dessous`, en ralentissant."""
+def volet(dessous, dessus, url_dessous, n=6, duree=50):
+    """Images du volet : le pan de `dessus` monte par-dessus celui de `dessous`, en ralentissant.
+    50 ms par image : 20 images par seconde, sous le plafond de 24 des régies qui suivent l'IAB."""
     course = Y_PIED - PAN_DROITE
-    return [(monter(dessous, dessus, round(course * (1 - k / (n + 1)) ** 2)), duree) for k in range(1, n + 1)]
+    return [(monter(dessous, dessus, round(course * (1 - k / (n + 1)) ** 2)), duree, url_dessous)
+            for k in range(1, n + 1)]
 
 
 def coup_de_pouce():
     """La flèche du bouton avance de 2, 4 puis 2 px."""
-    return [(monter(scene_offre(dx)), 70) for dx in (2, 4, 2)]
+    return [(monter(scene_offre(dx)), 70, URL_OFFRE) for dx in (2, 4, 2)]
 
 
 CYCLE = 9900                 # 3 lectures : 29,7 s, sous la limite usuelle de 30 s
 
 
 def images_animation():
-    """Liste de (image RGB, durée en ms) pour un cycle. La première et la dernière image sont
-    identiques : l'offre, son bouton et son QR code."""
+    """Liste de (image RGB, durée en ms, adresse du QR code affiché en pied) pour un cycle. La première
+    et la dernière image sont identiques : l'offre, son bouton et son QR code."""
     offre, podcast = scene_offre(), scene_podcast()
-    images = [(monter(offre), 1500)] + coup_de_pouce() + [(monter(offre), 1100)]
-    images += volet(offre, podcast)                         # volet anthracite : le podcast
-    images.append((monter(podcast), 2900))
-    images += volet(podcast, offre)                         # volet crème : retour à l'offre
-    images += [(monter(offre), 1000)] + coup_de_pouce()
-    images.append((monter(offre), CYCLE - sum(d for _, d in images)))
+    images = [(monter(offre), 1500, URL_OFFRE)] + coup_de_pouce() + [(monter(offre), 1100, URL_OFFRE)]
+    images += volet(offre, podcast, URL_OFFRE)              # volet anthracite : le podcast
+    images.append((monter(podcast), 2900, URL_PODCAST))
+    images += volet(podcast, offre, URL_PODCAST)            # volet crème : retour à l'offre
+    images += [(monter(offre), 1000, URL_OFFRE)] + coup_de_pouce()
+    images.append((monter(offre), CYCLE - sum(d for _, d, _ in images), URL_OFFRE))
     return images
 
 
@@ -364,7 +374,7 @@ def palettes(images, couleurs_photo=190):
     pixels_photo = np.array(PHOTO)[visible]
     p_photo = (Image.fromarray(pixels_photo.reshape(-1, 1, 3))
                .quantize(couleurs_photo, method=Image.Quantize.FASTOCTREE).getpalette()[:3 * couleurs_photo])
-    pixels = np.concatenate([np.array(im)[~visible] for im, _ in images])
+    pixels = np.concatenate([np.array(im)[~visible] for im, _, _ in images])
     exactes = np.array(COULEURS_EXACTES)
     hors_charte = ~(pixels[:, None, :] == exactes[None, :, :]).all(2).any(1)
     reste = 255 - couleurs_photo - len(COULEURS_EXACTES)
@@ -424,7 +434,7 @@ def enregistrer_gif(images, chemin):
     index_cadre = int(np.flatnonzero((couleurs == CADRE).all(1))[0])
     octets = bytes(couleurs.astype(np.uint8).flatten().tolist())
     cadres = []
-    for im, _ in images:
+    for im, _, _ in images:
         idx = np.where(visible, photo_idx, indexer(im, couleurs))
         idx[bord] = index_cadre                            # filet du cadre d'une couleur exacte, sans trame
         p = Image.fromarray(idx.astype(np.uint8), "P")
@@ -433,8 +443,9 @@ def enregistrer_gif(images, chemin):
     # Palette globale imposée (aucune renumérotation) ; optimize : dans le rectangle qui change d'une
     # image à la suivante, Pillow remplace les pixels inchangés par l'entrée transparente, qui se
     # compresse mieux. loop=2 : 2 répétitions après la première lecture, soit 3 lectures
-    cadres[0].save(chemin, save_all=True, append_images=cadres[1:], duration=[d for _, d in images],
-                   loop=2, palette=octets, optimize=True, transparency=TRANSPARENT, disposal=1)
+    cadres[0].save(chemin, format="GIF", save_all=True, append_images=cadres[1:],
+                   duration=[d for _, d, _ in images], loop=2, palette=octets, optimize=True,
+                   transparency=TRANSPARENT, disposal=1)
     premiere_image_opaque(chemin)
     return cadres
 
@@ -447,14 +458,14 @@ def relire_gif(chemin, cadres):
         relu.seek(min(i, relu.n_frames - 1))
         ok &= relu.convert("RGB").tobytes() == attendu.convert("RGB").tobytes()
     if not ok:
-        print(f"{os.path.basename(chemin)} : les images relues diffèrent des images calculées")
+        print(f"{os.path.basename(chemin).removesuffix('.tmp')} : les images relues diffèrent des images calculées")
     return ok
 
 
 def verifier(chemin):
     poids = os.path.getsize(chemin)
     statut = "OK" if poids <= POIDS_MAX else "TROP LOURD"
-    print(f"{os.path.basename(chemin)} : {poids / 1000:.0f} Ko ({statut})")
+    print(f"{os.path.basename(chemin).removesuffix('.tmp')} : {poids / 1000:.0f} Ko ({statut})")
     return poids <= POIDS_MAX
 
 
@@ -463,10 +474,19 @@ if __name__ == "__main__":
     images = images_animation()
     gif = os.path.join(SORTIE, "Banniere_300x600_animee.gif")
     jpg = os.path.join(SORTIE, "Banniere_300x600_fixe.jpg")
-    cadres = enregistrer_gif(images, gif)
-    images[-1][0].save(jpg, quality=92, subsampling=0, optimize=True)
-    ok = verifier(gif) & verifier(jpg) & relire_gif(gif, cadres) & controler_visage()
-    ok &= controler_zone_claire(scene_offre(), URL_OFFRE, "de l'offre")
-    ok &= controler_zone_claire(scene_podcast(), URL_PODCAST, "du podcast")
-    ok &= controler_zone_claire(cadres[-1].convert("RGB"), URL_OFFRE, "de l'offre (dernière image du GIF)")
+    # Fichiers écrits sous un nom provisoire : ils ne remplacent les livrables que si tous les contrôles
+    # passent
+    gif_tmp, jpg_tmp = gif + ".tmp", jpg + ".tmp"
+    cadres = enregistrer_gif(images, gif_tmp)
+    images[-1][0].save(jpg_tmp, format="JPEG", quality=92, subsampling=0, optimize=True)
+    ok = verifier(gif_tmp) & verifier(jpg_tmp) & relire_gif(gif_tmp, cadres) & controler_visage()
+    for i, ((_, _, url), cadre_gif) in enumerate(zip(images, cadres)):
+        ok &= controler_zone_claire(cadre_gif.convert("RGB"), url, f"de l'image {i} du GIF")
+    if ok:
+        os.replace(gif_tmp, gif)
+        os.replace(jpg_tmp, jpg)
+    else:
+        os.remove(gif_tmp)
+        os.remove(jpg_tmp)
+        print("Contrôles en échec : les fichiers précédents sont conservés")
     sys.exit(0 if ok else 1)

@@ -4,7 +4,8 @@ Usage : python3 -I verifier_banniere.py <banniere.gif> <banniere.jpg> <dossier_r
 
 Vérifie : dimensions, poids (<= 150 000 octets), boucle et durée totale (<= 30 s), concordance de la
 dernière image du GIF avec le JPEG, et la lecture des QR codes sur chaque image distincte, à l'échelle 1
-et dans trois simulations de prise de vue au téléphone (flou, rotation, reflet, distance).
+et dans trois simulations de prise de vue au téléphone (flou, rotation, reflet, distance). Pour chaque
+code, la « marge » compte les conditions dures (sur 3) dans lesquelles il reste lu.
 Produit dans <dossier_rapport> : planche.png (scènes tenues >= 1 s, à l'échelle 1), final_x2.png
 (dernière image agrandie 2 fois, pixels nets) et rapport.json.
 """
@@ -96,7 +97,15 @@ derniere = qr[distincts[-1]] if distincts[-1] == len(images) - 1 else qr[vus[ima
 rep["qr_derniere_image"] = derniere
 rep["qr_jpeg"] = {nom: lire(v) for nom, v in simulations(jpg)}
 rep["qr_jpeg_conditions_dures"] = {nom: lire(v) for nom, v in simulations_exigeantes(jpg)}
-rep["marge_qr_jpeg"] = {u: sum(u in v for v in rep["qr_jpeg_conditions_dures"].values()) for u in attendues}
+# Marge = nombre de conditions dures (sur 3) dans lesquelles le code reste lu ; seulement pour les codes
+# présents, sur le JPEG d'une part, sur les images tenues du GIF qui les portent d'autre part
+rep["marge_qr_jpeg"] = {u: sum(u in v for v in rep["qr_jpeg_conditions_dures"].values())
+                        for u in attendues if u in rep["qr_jpeg"]["ecran_1x"]}
+rep["marge_qr_images_tenues"] = {}
+for url in attendues:
+    porteuses = [i for i in distincts if durees[i] >= 1000 and url in qr[i]["ecran_1x"]]
+    rep["marge_qr_images_tenues"][url] = max(
+        (sum(url in lire(v) for _, v in simulations_exigeantes(images[i])) for i in porteuses), default=0)
 for url in attendues[:1]:
     if not all(url in v for v in rep["qr_jpeg"].values()):
         err(f"QR {url} : pas lisible dans toutes les simulations sur le JPEG")
