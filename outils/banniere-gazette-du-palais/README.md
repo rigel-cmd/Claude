@@ -9,7 +9,7 @@ Déclinaison web de la 4e de couverture de la Gazette du Palais : recrutement d'
 
 | Fichier | Format | Poids | Usage |
 |---|---|---:|---|
-| [`Banniere_300x600_animee.gif`](./Banniere_300x600_animee.gif) | GIF animé, 300 × 600 px | 101 Ko | Version à envoyer à la régie |
+| [`Banniere_300x600_animee.gif`](./Banniere_300x600_animee.gif) | GIF animé, 300 × 600 px | 103 Ko | Version à envoyer à la régie |
 | [`Banniere_300x600_fixe.jpg`](./Banniere_300x600_fixe.jpg) | JPEG, 300 × 600 px | 83 Ko | Version fixe, si la régie demande une image de secours ou n'accepte pas le GIF |
 
 Les deux fichiers respectent la limite de 150 Ko (150 000 octets).
@@ -32,8 +32,11 @@ https://www.victimesetprejudices.fr/recrutements/avocat-associe-salarie/?utm_sou
 
 ## Contenu
 
-- **L'offre d'abord :** la bannière s'ouvre et se termine sur l'offre. Le bouton « Découvrir l’offre → »
-  reste affiché sur toutes les images, puisque le clic mène toujours à l'offre.
+- **L'offre d'abord :** la bannière s'ouvre et se termine sur l'offre, avec le bouton « Découvrir l’offre → ».
+- **Pas de bouton pendant le podcast :** la bannière n'a qu'une adresse de clic, celle de l'offre. Un bouton
+  « Écouter le podcast » ouvrirait donc l'offre d'emploi. Le podcast s'atteint par son QR code (« ← Scannez
+  pour écouter »). Sur chaque image, le QR code affiché en pied correspond à la scène : celui de l'offre avec
+  le bouton, celui du podcast sans.
 - **Étiquette « RECRUTEMENT · GRENOBLE » :** la Gazette du Palais est lue dans toute la France ; le lieu du
   poste, repris de l'offre, évite des clics de candidats qui ne pourraient pas s'y installer. Pour le
   retirer, modifiez l'étiquette dans `scene_offre()`.
@@ -70,9 +73,9 @@ logo à droite.
 | Temps | Scène |
 |---|---|
 | 0 – 2,8 s | **Offre**, sur pan crème : « Avocat associé salarié (H/F) », « Perspective rapide d’association », bouton et QR code de l'offre. À 1,5 s, la flèche du bouton avance brièvement. |
-| 2,8 – 3,1 s | Un volet anthracite monte sur le pan ; le bouton reste en place. |
-| 3,1 – 6,0 s | **Podcast** : « Hervé Gerbi *raconte* », « Histoires vraies d’un avocat de victimes » et QR code du podcast. |
-| 6,0 – 6,3 s | Le volet crème revient. |
+| 2,8 – 3,1 s | Un volet anthracite monte et recouvre le bouton ; en pied, le QR code du podcast remplace celui de l'offre. |
+| 3,1 – 6,0 s | **Podcast**, sans bouton : « Hervé Gerbi *raconte* », « Histoires vraies d’un avocat de victimes » et QR code du podcast. |
+| 6,0 – 6,3 s | Le volet crème revient avec le bouton et le QR code de l'offre. |
 | 6,3 – 9,9 s | **Offre**, identique à la première image. À 7,3 s, la flèche avance de nouveau. |
 
 Le cycle de 9,9 s est joué 3 fois, soit 29,7 s. La bannière s'arrête ensuite sur l'offre. La version fixe
@@ -139,7 +142,7 @@ python3 -I verifier_banniere.py Banniere_300x600_animee.gif Banniere_300x600_fix
 
   Il produit aussi, dans le dossier `controle`, une planche des scènes et un rapport.
 - **Modifier la bannière (`generer_banniere.py`) :**
-  - les textes : dans `scene_offre()`, `scene_podcast()`, `bouton()` et `pied()` ;
+  - les textes : dans `scene_offre()`, `scene_podcast()`, `bouton()` (offre seulement) et `pied()` ;
   - les durées : dans `images_animation()`, `coup_de_pouce()`, `volet()` et `CYCLE` ;
   - la grille et les couleurs : en tête du script.
 - **Fichiers en cas d'échec :** le script écrit d'abord sous un nom provisoire. Si un contrôle échoue, les

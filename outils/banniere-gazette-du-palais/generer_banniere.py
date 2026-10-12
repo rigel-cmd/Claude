@@ -16,9 +16,10 @@ Produit :
   dernière image du GIF).
 
 Mise en page : sous la photo, le pan coupé porte l'étiquette, le titre, le filet, l'argument et le
-bouton « Découvrir l'offre », visible sur toutes les images puisque le clic mène à l'offre. En pied, sur
-crème, le QR code, sa légende et le logo. Pour le podcast, seul le pan passe en anthracite ; en pied, le
-QR code du podcast et sa légende remplacent ceux de l'offre.
+bouton « Découvrir l'offre ». En pied, sur crème, le QR code, sa légende et le logo. Pour le podcast, le
+pan passe en anthracite et le bouton disparaît (la bannière n'a qu'une adresse de clic, celle de l'offre :
+on accède au podcast par son QR code) ; en pied, le QR code du podcast et sa légende remplacent ceux de
+l'offre.
 
 QR codes : modules de 3 px exactement, posés au pixel près (sans rééchantillonnage), foncés sur fond
 clair, avec une zone claire de 4 modules (12 px) tout autour. Leurs couleurs figurent telles quelles dans
@@ -171,25 +172,25 @@ def texte_lisse(im, x, y, texte, nom_police, taille, couleur, approche=0.0, k=4)
     im.paste(couleur, (0, round(y) - haut), masque.resize((W, 3 * taille), Image.LANCZOS))
 
 
-def etiquette(im, code, texte, couleur):
+def etiquette(im, code, texte, couleur, dy=0):
     """Pictogramme et capitales espacées, comme sur la 4e de couverture. Le pictogramme est centré sur la
-    hauteur des capitales, d'après l'encre du glyphe."""
+    hauteur des capitales, d'après l'encre du glyphe. dy : décalage vertical de la grille."""
     f = police(ICONES, 22)
     g, h, d, b = f.getbbox(chr(code), anchor="ls")
     _, haut, _, bas = police(POPPINS, 11).getbbox("E", anchor="ls")
-    milieu_capitales = Y_ETIQUETTE + (haut + bas) / 2
+    milieu_capitales = Y_ETIQUETTE + dy + (haut + bas) / 2
     ImageDraw.Draw(im).text((X0 - g, round(milieu_capitales - (h + b) / 2)), chr(code), font=f, fill=couleur,
                             anchor="ls")
-    texte_lisse(im, X0 + d - g + 7, Y_ETIQUETTE, texte, POPPINS, 11, couleur, approche=1.7)
+    texte_lisse(im, X0 + d - g + 7, Y_ETIQUETTE + dy, texte, POPPINS, 11, couleur, approche=1.7)
 
 
-def titre(d, lignes):
+def titre(d, lignes, dy=0):
     for (texte, nom_police, taille, couleur), y in zip(lignes, Y_TITRE):
-        d.text((X0 - 1, y), texte, font=police(nom_police, taille), fill=couleur, anchor="ls")
+        d.text((X0 - 1, y + dy), texte, font=police(nom_police, taille), fill=couleur, anchor="ls")
 
 
 def bouton(im, decalage_fleche=0):
-    """Bouton « Découvrir l'offre », pleine largeur, à la même place dans toutes les scènes."""
+    """Bouton « Découvrir l'offre », pleine largeur (scène de l'offre seulement)."""
     d = ImageDraw.Draw(im)
     d.rectangle((X0, Y_BOUTON, X1 - 1, Y_BOUTON + H_BOUTON - 1), fill=ROUGE)
     texte = "Découvrir l’offre"
@@ -256,15 +257,21 @@ def scene_offre(decalage_fleche=0):
     return im
 
 
+# Sans bouton, le texte du podcast descend pour être centré dans le pan anthracite
+DECALAGE_PODCAST = 16
+
+
 def scene_podcast():
+    """Pas de bouton : la bannière n'a qu'une adresse de clic, celle de l'offre. On accède au podcast
+    par son QR code."""
     im = Image.new("RGB", (W, H), ANTHRACITE)
     d = ImageDraw.Draw(im)
-    etiquette(im, ICONE_CASQUE, "PODCAST", ORANGE)
-    titre(d, [("Hervé Gerbi", SERIF, 32, BLANC), ("raconte", SERIF_ITALIQUE, 34, ORANGE)])
-    d.rectangle((X0, Y_FILET, X1 - 1, Y_FILET + 2), fill=ORANGE)
-    d.text((X0, Y_ARGUMENT), "Histoires vraies d’un avocat de victimes", font=police(OPEN_SANS, 13),
+    dy = DECALAGE_PODCAST
+    etiquette(im, ICONE_CASQUE, "PODCAST", ORANGE, dy)
+    titre(d, [("Hervé Gerbi", SERIF, 32, BLANC), ("raconte", SERIF_ITALIQUE, 34, ORANGE)], dy)
+    d.rectangle((X0, Y_FILET + dy, X1 - 1, Y_FILET + dy + 2), fill=ORANGE)
+    d.text((X0, Y_ARGUMENT + dy), "Histoires vraies d’un avocat de victimes", font=police(OPEN_SANS, 13),
            fill=GRIS_CLAIR, anchor="ls")
-    bouton(im)
     pied(im, URL_PODCAST, "pour écouter", ENCRE, ORANGE_TEXTE)
     return im
 
@@ -283,19 +290,21 @@ def cadre(im):
 
 def monter(scene, volet=None, decalage=0):
     """Photo + pan. volet : scène dont le pan monte par-dessus, son bord abaissé de `decalage` pixels.
-    Le volet s'arrête au pied, qui garde le QR code de la scène recouverte jusqu'à la fin du volet."""
+    Le volet monte depuis le bas : le pied (QR code et légende) passe à sa scène dès la première image,
+    pour que le QR code et sa légende correspondent toujours au bouton affiché (ou à son absence)."""
     im = PHOTO.copy()
     im.paste(scene, (0, 0), PAN)
     if volet is not None:
         im.paste(volet, (0, 0), masque_pan(decalage, bas=Y_PIED))
+        im.paste(volet.crop((0, Y_PIED, W, H)), (0, Y_PIED))
     return cadre(im)
 
 
-def volet(dessous, dessus, url_dessous, n=6, duree=50):
+def volet(dessous, dessus, url_dessus, n=6, duree=50):
     """Images du volet : le pan de `dessus` monte par-dessus celui de `dessous`, en ralentissant.
     50 ms par image : 20 images par seconde, sous le plafond de 24 des régies qui suivent l'IAB."""
     course = Y_PIED - PAN_DROITE
-    return [(monter(dessous, dessus, round(course * (1 - k / (n + 1)) ** 2)), duree, url_dessous)
+    return [(monter(dessous, dessus, round(course * (1 - k / (n + 1)) ** 2)), duree, url_dessus)
             for k in range(1, n + 1)]
 
 
@@ -312,9 +321,9 @@ def images_animation():
     et la dernière image sont identiques : l'offre, son bouton et son QR code."""
     offre, podcast = scene_offre(), scene_podcast()
     images = [(monter(offre), 1500, URL_OFFRE)] + coup_de_pouce() + [(monter(offre), 1100, URL_OFFRE)]
-    images += volet(offre, podcast, URL_OFFRE)              # volet anthracite : le podcast
+    images += volet(offre, podcast, URL_PODCAST)            # volet anthracite : le podcast
     images.append((monter(podcast), 2900, URL_PODCAST))
-    images += volet(podcast, offre, URL_PODCAST)            # volet crème : retour à l'offre
+    images += volet(podcast, offre, URL_OFFRE)              # volet crème : retour à l'offre
     images += [(monter(offre), 1000, URL_OFFRE)] + coup_de_pouce()
     images.append((monter(offre), CYCLE - sum(d for _, d, _ in images), URL_OFFRE))
     return images
