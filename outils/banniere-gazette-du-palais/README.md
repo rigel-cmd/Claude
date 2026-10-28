@@ -22,6 +22,10 @@ https://www.victimesetprejudices.fr/recrutements/avocat-associe-salarie/?utm_sou
 
 - **Page de destination :** l'offre « Avocat associé salarié ». C'est la page du QR code « Recrutement » de la
   4e de couverture.
+- **Toute la bannière est cliquable :** la régie relie l'image entière à cette adresse. Un clic n'importe où,
+  sur le bouton « Découvrir l’offre » comme sur la photo, et à n'importe quel moment de l'animation, ouvre
+  l'offre. Le bouton dessiné sert de repère visuel : dans un GIF ou un JPEG, il ne peut pas mener ailleurs que
+  le reste de l'image.
 - **Paramètres `utm_` :** ils permettent de compter, dans Google Analytics, les visites venues de la
   bannière. Ils ne changent rien à l'affichage de la page. Si le site n'a pas d'outil de mesure, donnez
   l'adresse sans eux : `https://www.victimesetprejudices.fr/recrutements/avocat-associe-salarie/`.
