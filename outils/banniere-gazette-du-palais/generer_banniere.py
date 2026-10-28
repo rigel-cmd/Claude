@@ -9,24 +9,25 @@ Usage : python3 generer_banniere.py <dossier_polices> [dossier_sortie]
 - dossier_sortie : par défaut, le dossier du script.
 
 Produit :
-- Banniere_300x600_animee.gif : l'offre (titre, argument, bouton, QR code de l'offre), un intermède
-  podcast (QR code du podcast), puis de nouveau l'offre, sur laquelle la bannière s'arrête. Le cycle
-  dure 9,9 s et se joue 3 fois (29,7 s) ;
+- Banniere_300x600_animee.gif : l'offre (titre, argument, QR code de l'offre), un intermède podcast
+  (QR code du podcast), puis de nouveau l'offre, sur laquelle la bannière s'arrête. Le cycle dure 9,9 s
+  et se joue 3 fois (29,7 s) ;
 - Banniere_300x600_fixe.jpg : la scène de l'offre, en image fixe (identique à la première et à la
   dernière image du GIF).
 
-Mise en page : sous la photo, le pan coupé porte l'étiquette, le titre, le filet, l'argument et le
-bouton « Découvrir l'offre ». En pied, sur crème, le QR code, sa légende et le logo. Pour le podcast, le
-pan passe en anthracite et le bouton disparaît (la bannière n'a qu'une adresse de clic, celle de l'offre :
-on accède au podcast par son QR code) ; en pied, le QR code du podcast et sa légende remplacent ceux de
-l'offre.
+Mise en page : sous la photo, le pan coupé porte l'étiquette, le titre, le filet et l'argument. En pied,
+sur crème, le QR code, sa légende et le logo. Pour le podcast, le pan passe en anthracite ; en pied, le QR
+code du podcast et sa légende remplacent ceux de l'offre.
 
-QR codes : modules de 3 px exactement, posés au pixel près (sans rééchantillonnage), foncés sur fond
-clair, avec une zone claire de 4 modules (12 px) tout autour. Leurs couleurs figurent telles quelles dans
+Pas de bouton : une bannière en image n'a qu'une adresse de clic, qui ne peut pas suivre l'alternance de
+l'offre et du podcast. Les QR codes sont les seuls appels à l'action, chacun menant à sa page.
+
+QR codes : modules de 4 px exactement, posés au pixel près (sans rééchantillonnage), foncés sur fond
+clair, avec une zone claire de 12 px (3 modules) tout autour. Leurs couleurs figurent telles quelles dans
 la palette du GIF et ne sont jamais tramées.
 
 La photo reste identique d'une image à l'autre (mêmes index de palette) : seuls le pan, le pied et la
-flèche du bouton changent, ce qui garde le GIF léger. Le script échoue si un fichier dépasse 150 Ko, si
+flèche de la légende changent, ce qui garde le GIF léger. Le script échoue si un fichier dépasse 150 Ko, si
 le GIF relu ne redonne pas exactement les images calculées, si la zone claire d'un QR code est encombrée
 ou si le pan s'approche à moins de 14 px du visage.
 """
@@ -60,21 +61,20 @@ Y_ETIQUETTE = 324
 Y_TITRE = (361, 395)
 Y_FILET = 407
 Y_ARGUMENT = 428
-Y_BOUTON, H_BOUTON = 441, 32
 H_LISERE = 4
 
-# Pied : QR code à gauche (aligné sur le bouton), légende et logo à droite (logo aligné sur le bord droit
-# du bouton et sur le bas du QR code)
-MODULE = 3                   # taille d'un module de QR code, en pixels
-ZONE_CLAIRE = 4 * MODULE     # zone claire exigée autour des modules
-COTE_QR = 33 * MODULE        # QR code de l'offre : version 4, 33 modules
+# Pied : QR code à gauche, sur la marge ; légende et logo à droite (logo calé sur la marge droite et sur
+# le bas du QR code). Seuls appels à l'action, les QR codes sont grands : modules de 4 px
+MODULE = 4                   # taille d'un module de QR code, en pixels
+ZONE_CLAIRE = 12             # zone claire exigée autour des modules (3 modules)
+COTE_QR = 33 * MODULE        # QR code de l'offre : version 4, 33 modules, soit 132 px
 X_QR, Y_QR = X0, H - H_LISERE - ZONE_CLAIRE - COTE_QR
-# Haut du pied crème, commun aux deux scènes : il commence avec la zone claire du QR code de l'offre, juste
-# sous le bouton, pour que le volet anthracite ne la réduise jamais
+# Haut du pied crème, commun aux deux scènes : il commence avec la zone claire du QR code de l'offre, pour
+# que le volet anthracite ne la réduise jamais ; il reste 8 px sous les jambages de l'argument
 Y_PIED = Y_QR - ZONE_CLAIRE
-assert Y_PIED >= Y_BOUTON + H_BOUTON
-LARGEUR_LOGO = 125
-X_COLONNE = X1 - LARGEUR_LOGO
+assert Y_PIED - Y_ARGUMENT >= 12
+X_COLONNE = X_QR + COTE_QR + 16
+LARGEUR_LOGO = X1 - X_COLONNE
 
 # Couleurs relevées sur la 4e de couverture
 CREME = (244, 240, 231)
@@ -89,8 +89,7 @@ GRIS_CLAIR = (232, 232, 232)
 CADRE = (196, 190, 178)
 COULEURS_EXACTES = [CREME, ANTHRACITE, ROUGE, ORANGE, ORANGE_TEXTE, VERT, ENCRE, BLANC, GRIS_CLAIR, CADRE]
 
-ICONE_CASQUE, ICONE_GROUPE, ICONE_FLECHE = 0xF01F, 0xF233, 0xE5C8
-ICONE_ESSOR, ICONE_RETOUR = 0xE8E5, 0xE5C4
+ICONE_CASQUE, ICONE_GROUPE, ICONE_ESSOR, ICONE_RETOUR = 0xF01F, 0xF233, 0xE8E5, 0xE5C4
 
 # Contour du visage, barbe comprise, relevé sur la photo ramenée à 300 px de large (avant rognage) :
 # le pan ne doit pas s'en approcher à moins de MARGE_VISAGE px
@@ -159,7 +158,7 @@ def lisere(d):
 
 def texte_lisse(im, x, y, texte, nom_police, taille, couleur, approche=0.0, k=4):
     """Texte tracé 4 fois plus grand puis réduit (x, y : début de la ligne de base). Au pixel près,
-    l'approche des lettres de Poppins serait irrégulière (« D écouvrir », « l'o ffre »).
+    l'approche des lettres de Poppins serait irrégulière (« Scan nez », « R ECRUTEMENT »).
     approche : espacement ajouté entre les lettres, en pixels (capitales espacées des étiquettes)."""
     f = police(nom_police, taille * k)
     haut = 2 * taille
@@ -172,34 +171,21 @@ def texte_lisse(im, x, y, texte, nom_police, taille, couleur, approche=0.0, k=4)
     im.paste(couleur, (0, round(y) - haut), masque.resize((W, 3 * taille), Image.LANCZOS))
 
 
-def etiquette(im, code, texte, couleur, dy=0):
+def etiquette(im, code, texte, couleur):
     """Pictogramme et capitales espacées, comme sur la 4e de couverture. Le pictogramme est centré sur la
-    hauteur des capitales, d'après l'encre du glyphe. dy : décalage vertical de la grille."""
+    hauteur des capitales, d'après l'encre du glyphe."""
     f = police(ICONES, 22)
     g, h, d, b = f.getbbox(chr(code), anchor="ls")
     _, haut, _, bas = police(POPPINS, 11).getbbox("E", anchor="ls")
-    milieu_capitales = Y_ETIQUETTE + dy + (haut + bas) / 2
+    milieu_capitales = Y_ETIQUETTE + (haut + bas) / 2
     ImageDraw.Draw(im).text((X0 - g, round(milieu_capitales - (h + b) / 2)), chr(code), font=f, fill=couleur,
                             anchor="ls")
-    texte_lisse(im, X0 + d - g + 7, Y_ETIQUETTE + dy, texte, POPPINS, 11, couleur, approche=1.7)
+    texte_lisse(im, X0 + d - g + 7, Y_ETIQUETTE, texte, POPPINS, 11, couleur, approche=1.7)
 
 
-def titre(d, lignes, dy=0):
+def titre(d, lignes):
     for (texte, nom_police, taille, couleur), y in zip(lignes, Y_TITRE):
-        d.text((X0 - 1, y + dy), texte, font=police(nom_police, taille), fill=couleur, anchor="ls")
-
-
-def bouton(im, decalage_fleche=0):
-    """Bouton « Découvrir l'offre », pleine largeur (scène de l'offre seulement)."""
-    d = ImageDraw.Draw(im)
-    d.rectangle((X0, Y_BOUTON, X1 - 1, Y_BOUTON + H_BOUTON - 1), fill=ROUGE)
-    texte = "Découvrir l’offre"
-    largeur = police(POPPINS, 13).getlength(texte) + 6 + 17
-    x = round((W - largeur) / 2)
-    y = Y_BOUTON + H_BOUTON // 2
-    texte_lisse(im, x, y + 5, texte, POPPINS, 13, BLANC)
-    d.text((x + largeur - 17 + decalage_fleche, y + 8), chr(ICONE_FLECHE), font=police(ICONES, 17),
-           fill=BLANC, anchor="ls")
+        d.text((X0 - 1, y), texte, font=police(nom_police, taille), fill=couleur, anchor="ls")
 
 
 @functools.lru_cache(maxsize=None)
@@ -225,15 +211,19 @@ def dessiner_qr(d, url, couleur):
                             fill=couleur)
 
 
-def pied(im, url, suite, couleur_qr, couleur_verbe):
-    """Pied crème : QR code, flèche et légende sur deux lignes, logo calé sur le bas du QR code."""
+Y_LEGENDE = (Y_QR + 26, Y_QR + 45)    # lignes de base de « Scannez » et de la suite
+
+
+def pied(im, url, suite, couleur_qr, couleur_verbe, decalage_fleche=0):
+    """Pied crème : QR code, flèche et légende sur deux lignes, logo calé sur le bas du QR code.
+    decalage_fleche < 0 : la flèche avance vers le QR code."""
     d = ImageDraw.Draw(im)
     d.rectangle((0, Y_PIED, W, H - H_LISERE - 1), fill=CREME)
     dessiner_qr(d, url, couleur_qr)
-    d.text((X_COLONNE - 3, Y_QR + 14), chr(ICONE_RETOUR), font=police(ICONES, 18), fill=couleur_verbe,
-           anchor="ls")
-    texte_lisse(im, X_COLONNE + 18, Y_QR + 12, "Scannez", POPPINS, 15, couleur_verbe)
-    texte_lisse(im, X_COLONNE + 18, Y_QR + 28, suite, POPPINS, 12, ENCRE)
+    d.text((X_COLONNE + decalage_fleche, Y_LEGENDE[0] + 3), chr(ICONE_RETOUR), font=police(ICONES, 20),
+           fill=couleur_verbe, anchor="ls")
+    texte_lisse(im, X_COLONNE + 22, Y_LEGENDE[0], "Scannez", POPPINS, 16, couleur_verbe)
+    texte_lisse(im, X_COLONNE + 22, Y_LEGENDE[1], suite, POPPINS, 12, ENCRE)
     lg = logo()
     im.paste(lg, (X_COLONNE, Y_QR + COTE_QR - lg.height), lg)
     lisere(d)
@@ -252,25 +242,17 @@ def scene_offre(decalage_fleche=0):
     d.text((X0 - 2, Y_ARGUMENT + 4), chr(ICONE_ESSOR), font=police(ICONES, 20), fill=ROUGE, anchor="ls")
     d.text((X0 + 23, Y_ARGUMENT), "Perspective rapide d’association", font=police(OPEN_SANS_DEMI, 13),
            fill=ENCRE, anchor="ls")
-    bouton(im, decalage_fleche)
-    pied(im, URL_OFFRE, "pour postuler", ROUGE, ROUGE)
+    pied(im, URL_OFFRE, "pour postuler", ROUGE, ROUGE, decalage_fleche)
     return im
 
 
-# Sans bouton, le texte du podcast descend pour être centré dans le pan anthracite
-DECALAGE_PODCAST = 16
-
-
 def scene_podcast():
-    """Pas de bouton : la bannière n'a qu'une adresse de clic, celle de l'offre. On accède au podcast
-    par son QR code."""
     im = Image.new("RGB", (W, H), ANTHRACITE)
     d = ImageDraw.Draw(im)
-    dy = DECALAGE_PODCAST
-    etiquette(im, ICONE_CASQUE, "PODCAST", ORANGE, dy)
-    titre(d, [("Hervé Gerbi", SERIF, 32, BLANC), ("raconte", SERIF_ITALIQUE, 34, ORANGE)], dy)
-    d.rectangle((X0, Y_FILET + dy, X1 - 1, Y_FILET + dy + 2), fill=ORANGE)
-    d.text((X0, Y_ARGUMENT + dy), "Histoires vraies d’un avocat de victimes", font=police(OPEN_SANS, 13),
+    etiquette(im, ICONE_CASQUE, "PODCAST", ORANGE)
+    titre(d, [("Hervé Gerbi", SERIF, 32, BLANC), ("raconte", SERIF_ITALIQUE, 34, ORANGE)])
+    d.rectangle((X0, Y_FILET, X1 - 1, Y_FILET + 2), fill=ORANGE)
+    d.text((X0, Y_ARGUMENT), "Histoires vraies d’un avocat de victimes", font=police(OPEN_SANS, 13),
            fill=GRIS_CLAIR, anchor="ls")
     pied(im, URL_PODCAST, "pour écouter", ENCRE, ORANGE_TEXTE)
     return im
@@ -291,7 +273,7 @@ def cadre(im):
 def monter(scene, volet=None, decalage=0):
     """Photo + pan. volet : scène dont le pan monte par-dessus, son bord abaissé de `decalage` pixels.
     Le volet monte depuis le bas : le pied (QR code et légende) passe à sa scène dès la première image,
-    pour que le QR code et sa légende correspondent toujours au bouton affiché (ou à son absence)."""
+    pour que le QR code et sa légende correspondent toujours au titre qui l'emporte à l'écran."""
     im = PHOTO.copy()
     im.paste(scene, (0, 0), PAN)
     if volet is not None:
@@ -309,8 +291,8 @@ def volet(dessous, dessus, url_dessus, n=6, duree=50):
 
 
 def coup_de_pouce():
-    """La flèche du bouton avance de 2, 4 puis 2 px."""
-    return [(monter(scene_offre(dx)), 70, URL_OFFRE) for dx in (2, 4, 2)]
+    """La flèche de la légende avance de 2, 4 puis 2 px vers le QR code de l'offre."""
+    return [(monter(scene_offre(dx)), 70, URL_OFFRE) for dx in (-2, -4, -2)]
 
 
 CYCLE = 9900                 # 3 lectures : 29,7 s, sous la limite usuelle de 30 s
@@ -318,7 +300,7 @@ CYCLE = 9900                 # 3 lectures : 29,7 s, sous la limite usuelle de 30
 
 def images_animation():
     """Liste de (image RGB, durée en ms, adresse du QR code affiché en pied) pour un cycle. La première
-    et la dernière image sont identiques : l'offre, son bouton et son QR code."""
+    et la dernière image sont identiques : l'offre et son QR code."""
     offre, podcast = scene_offre(), scene_podcast()
     images = [(monter(offre), 1500, URL_OFFRE)] + coup_de_pouce() + [(monter(offre), 1100, URL_OFFRE)]
     images += volet(offre, podcast, URL_PODCAST)            # volet anthracite : le podcast

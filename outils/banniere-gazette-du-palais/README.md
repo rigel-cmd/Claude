@@ -9,8 +9,8 @@ Déclinaison web de la 4e de couverture de la Gazette du Palais : recrutement d'
 
 | Fichier | Format | Poids | Usage |
 |---|---|---:|---|
-| [`Banniere_300x600_animee.gif`](./Banniere_300x600_animee.gif) | GIF animé, 300 × 600 px | 103 Ko | Version à envoyer à la régie |
-| [`Banniere_300x600_fixe.jpg`](./Banniere_300x600_fixe.jpg) | JPEG, 300 × 600 px | 83 Ko | Version fixe, si la régie demande une image de secours ou n'accepte pas le GIF |
+| [`Banniere_300x600_animee.gif`](./Banniere_300x600_animee.gif) | GIF animé, 300 × 600 px | 102 Ko | Version à envoyer à la régie |
+| [`Banniere_300x600_fixe.jpg`](./Banniere_300x600_fixe.jpg) | JPEG, 300 × 600 px | 80 Ko | Version fixe, si la régie demande une image de secours ou n'accepte pas le GIF |
 
 Les deux fichiers respectent la limite de 150 Ko (150 000 octets).
 
@@ -22,10 +22,10 @@ https://www.victimesetprejudices.fr/recrutements/avocat-associe-salarie/?utm_sou
 
 - **Page de destination :** l'offre « Avocat associé salarié ». C'est la page du QR code « Recrutement » de la
   4e de couverture.
-- **Toute la bannière est cliquable :** la régie relie l'image entière à cette adresse. Un clic n'importe où,
-  sur le bouton « Découvrir l’offre » comme sur la photo, et à n'importe quel moment de l'animation, ouvre
-  l'offre. Le bouton dessiné sert de repère visuel : dans un GIF ou un JPEG, il ne peut pas mener ailleurs que
-  le reste de l'image.
+- **Un seul lien pour toute l'image :** la régie relie l'image entière à cette adresse, quelle que soit la
+  scène affichée. Ce lien ne peut pas suivre l'alternance de l'offre et du podcast. La bannière n'affiche donc
+  aucun bouton : ses appels à l'action sont les QR codes (voir plus bas). Le clic reste possible et mène à
+  l'offre, prioritaire. La régie exige de toute façon une URL de redirection.
 - **Paramètres `utm_` :** ils permettent de compter, dans Google Analytics, les visites venues de la
   bannière. Ils ne changent rien à l'affichage de la page. Si le site n'a pas d'outil de mesure, donnez
   l'adresse sans eux : `https://www.victimesetprejudices.fr/recrutements/avocat-associe-salarie/`.
@@ -36,11 +36,10 @@ https://www.victimesetprejudices.fr/recrutements/avocat-associe-salarie/?utm_sou
 
 ## Contenu
 
-- **L'offre d'abord :** la bannière s'ouvre et se termine sur l'offre, avec le bouton « Découvrir l’offre → ».
-- **Pas de bouton pendant le podcast :** la bannière n'a qu'une adresse de clic, celle de l'offre. Un bouton
-  « Écouter le podcast » ouvrirait donc l'offre d'emploi. Le podcast s'atteint par son QR code (« ← Scannez
-  pour écouter »). Sur chaque image, le QR code affiché en pied correspond à la scène : celui de l'offre avec
-  le bouton, celui du podcast sans.
+- **L'offre d'abord :** la bannière s'ouvre et se termine sur l'offre et son QR code.
+- **Les QR codes comme seuls appels à l'action :** chacun mène à sa propre page, ce que le lien unique de la
+  bannière ne permet pas. Sur chaque image, le QR code affiché en pied correspond à la scène : « Scannez pour
+  postuler » avec l'offre, « Scannez pour écouter » avec le podcast.
 - **Étiquette « RECRUTEMENT · GRENOBLE » :** la Gazette du Palais est lue dans toute la France ; le lieu du
   poste, repris de l'offre, évite des clics de candidats qui ne pourraient pas s'y installer. Pour le
   retirer, modifiez l'étiquette dans `scene_offre()`.
@@ -58,11 +57,11 @@ logo à droite.
 | Offre | `https://www.victimesetprejudices.fr/recrutements/avocat-associe-salarie/` | Scènes de l'offre, dont la dernière image et la version fixe, en rouge sur crème comme sur la 4e de couverture : « ← Scannez pour postuler » |
 | Podcast | `https://www.victimesetprejudices.fr/podcast/` | Scène du podcast, en encre sur crème : « ← Scannez pour écouter » |
 
-- **Pourquoi deux QR codes :**
-  - le clic mène à l'offre ; le QR code du podcast est donc le seul accès au podcast depuis la bannière ;
-  - celui de l'offre permet à un lecteur sur ordinateur de garder l'offre sur son téléphone.
-- **Taille :** chaque module (petit carré) fait 3 px exactement, soit un QR code de 99 px (offre) ou 87 px
-  (podcast). À 2 px, les codes n'étaient plus lus dans les prises de vue difficiles.
+- **Pourquoi deux QR codes :** ils mènent chacun à leur page, l'offre ou le podcast. Un lecteur sur ordinateur
+  garde aussi la page sur son téléphone.
+- **Taille :** chaque module (petit carré) fait 4 px exactement, soit un QR code de 132 px (offre) ou 116 px
+  (podcast), environ 3,5 cm sur un écran d'ordinateur. À 2 px, les codes n'étaient plus lus dans les prises
+  de vue difficiles.
 - **Lisibilité :**
   - modules posés au pixel près, foncés sur fond clair, avec 12 px de zone claire tout autour, sur toutes
     les images, transitions comprises ;
@@ -76,10 +75,10 @@ logo à droite.
 
 | Temps | Scène |
 |---|---|
-| 0 – 2,8 s | **Offre**, sur pan crème : « Avocat associé salarié (H/F) », « Perspective rapide d’association », bouton et QR code de l'offre. À 1,5 s, la flèche du bouton avance brièvement. |
-| 2,8 – 3,1 s | Un volet anthracite monte et recouvre le bouton ; en pied, le QR code du podcast remplace celui de l'offre. |
-| 3,1 – 6,0 s | **Podcast**, sans bouton : « Hervé Gerbi *raconte* », « Histoires vraies d’un avocat de victimes » et QR code du podcast. |
-| 6,0 – 6,3 s | Le volet crème revient avec le bouton et le QR code de l'offre. |
+| 0 – 2,8 s | **Offre**, sur pan crème : « Avocat associé salarié (H/F) », « Perspective rapide d’association » et QR code de l'offre. À 1,5 s, la flèche de « ← Scannez » avance brièvement vers le QR code. |
+| 2,8 – 3,1 s | Un volet anthracite monte ; en pied, le QR code du podcast remplace celui de l'offre. |
+| 3,1 – 6,0 s | **Podcast** : « Hervé Gerbi *raconte* », « Histoires vraies d’un avocat de victimes » et QR code du podcast. |
+| 6,0 – 6,3 s | Le volet crème revient avec le QR code de l'offre. |
 | 6,3 – 9,9 s | **Offre**, identique à la première image. À 7,3 s, la flèche avance de nouveau. |
 
 Le cycle de 9,9 s est joué 3 fois, soit 29,7 s. La bannière s'arrête ensuite sur l'offre. La version fixe
@@ -118,7 +117,7 @@ modifiant quelques durées :
 
   S'y ajoute un orange foncé, `#8C5800`, absent du visuel : il sert au mot « Scannez » du podcast, sur
   crème, où l'orange de la charte ne serait pas assez contrasté (contraste de 5,3:1).
-- **Logo :** 125 px de large, en pied de chaque scène.
+- **Logo :** 108 px de large, en pied de chaque scène, à droite du QR code.
 - **Liseré tricolore :** il ferme la bannière, comme sur les autres supports du cabinet.
 - **Filet gris de 1 px :** il entoure la bannière, pour la détacher des pages blanches des sites.
 
@@ -146,7 +145,7 @@ python3 -I verifier_banniere.py Banniere_300x600_animee.gif Banniere_300x600_fix
 
   Il produit aussi, dans le dossier `controle`, une planche des scènes et un rapport.
 - **Modifier la bannière (`generer_banniere.py`) :**
-  - les textes : dans `scene_offre()`, `scene_podcast()`, `bouton()` (offre seulement) et `pied()` ;
+  - les textes : dans `scene_offre()`, `scene_podcast()` et `pied()` ;
   - les durées : dans `images_animation()`, `coup_de_pouce()`, `volet()` et `CYCLE` ;
   - la grille et les couleurs : en tête du script.
 - **Fichiers en cas d'échec :** le script écrit d'abord sous un nom provisoire. Si un contrôle échoue, les
