@@ -1,4 +1,4 @@
-"""Contrôle d'une bannière 300 x 600 (GIF animé + JPEG fixe).
+"""Contrôle d'une bannière 300 x 600 ou 600 x 200 (GIF animé + JPEG fixe).
 
 Usage : python3 -I verifier_banniere.py <banniere.gif> <banniere.jpg> <dossier_rapport> [url_attendue ...]
 
@@ -14,6 +14,7 @@ import numpy as np
 import zxingcpp
 from PIL import Image, ImageEnhance, ImageFilter, ImageSequence
 
+FORMATS = {(300, 600), (600, 200)}
 gif_p, jpg_p, out = sys.argv[1:4]
 attendues = sys.argv[4:]
 os.makedirs(out, exist_ok=True)
@@ -28,8 +29,8 @@ for p in (gif_p, jpg_p):
     if n > 150_000:
         err(f"{os.path.basename(p)} pèse {n} octets (> 150 000)")
     im = Image.open(p)
-    if im.size != (300, 600):
-        err(f"{os.path.basename(p)} mesure {im.size}")
+    if im.size not in FORMATS or im.size != Image.open(gif_p).size:
+        err(f"{os.path.basename(p)} mesure {im.size} (attendu : un des formats {sorted(FORMATS)}, identique pour les deux fichiers)")
 
 g = Image.open(gif_p)
 images, durees = [], []
@@ -52,24 +53,29 @@ rep["ecart_moyen_dernier_cadre_vs_jpeg"] = round(ecart, 2)
 if ecart > 6:
     err(f"le JPEG ne correspond pas à la dernière image du GIF (écart moyen {ecart:.1f})")
 
+def taille(im, kx, ky=None):
+    """Dimensions de l'image multipliées par kx (et ky) : les simulations suivent le format."""
+    return round(im.width * kx), round(im.height * (kx if ky is None else ky))
+
+
 def simulations(im):
     yield "ecran_1x", im
-    a = im.resize((750, 1500), Image.BILINEAR).filter(ImageFilter.GaussianBlur(1.6))
-    bruit = np.clip(np.asarray(a, float) + np.random.default_rng(1).normal(0, 6, (1500, 750, 3)), 0, 255)
+    a = im.resize(taille(im, 2.5), Image.BILINEAR).filter(ImageFilter.GaussianBlur(1.6))
+    bruit = np.clip(np.asarray(a, float) + np.random.default_rng(1).normal(0, 6, (a.height, a.width, 3)), 0, 255)
     yield "photo_floue_bruitee", Image.fromarray(bruit.astype(np.uint8))
-    b = im.resize((480, 960), Image.BILINEAR).rotate(5, Image.BILINEAR, expand=True, fillcolor=(30, 30, 30))
+    b = im.resize(taille(im, 1.6), Image.BILINEAR).rotate(5, Image.BILINEAR, expand=True, fillcolor=(30, 30, 30))
     b = Image.blend(b, Image.new("RGB", b.size, "white"), 0.28).filter(ImageFilter.GaussianBlur(0.9))
     yield "rotation_reflet", b
-    c = im.resize((195, 390), Image.LANCZOS).resize((585, 1170), Image.BILINEAR).filter(ImageFilter.GaussianBlur(1.0))
+    c = im.resize(taille(im, 0.65), Image.LANCZOS).resize(taille(im, 1.95), Image.BILINEAR).filter(ImageFilter.GaussianBlur(1.0))
     yield "distance_x0.65", c
 
 def simulations_exigeantes(im):
     """Conditions dures, pour mesurer la marge de lecture (non bloquantes)."""
-    a = im.resize((135, 270), Image.LANCZOS).resize((540, 1080), Image.BILINEAR).filter(ImageFilter.GaussianBlur(1.2))
+    a = im.resize(taille(im, 0.45), Image.LANCZOS).resize(taille(im, 1.8), Image.BILINEAR).filter(ImageFilter.GaussianBlur(1.2))
     yield "distance_x0.45", a
-    b = im.resize((750, 1500), Image.BILINEAR).filter(ImageFilter.GaussianBlur(3.2))
+    b = im.resize(taille(im, 2.5), Image.BILINEAR).filter(ImageFilter.GaussianBlur(3.2))
     yield "flou_fort", b
-    c = Image.blend(im, Image.new("RGB", im.size, "white"), 0.5).resize((600, 1200), Image.BILINEAR)
+    c = Image.blend(im, Image.new("RGB", im.size, "white"), 0.5).resize(taille(im, 2), Image.BILINEAR)
     yield "contraste_faible_x0.5", Image.blend(c, Image.new("RGB", c.size, "white"), 0.0).filter(ImageFilter.GaussianBlur(1.4))
 
 def lire(im):
@@ -111,11 +117,12 @@ for url in attendues[:1]:
         err(f"QR {url} : pas lisible dans toutes les simulations sur le JPEG")
 
 tenues = [i for i in range(len(images)) if durees[i] >= 1000] or [len(images) - 1]
-pl = Image.new("RGB", (310 * len(tenues), 600), "white")
+w, h = images[0].size
+pl = Image.new("RGB", (w + 10, (h + 10) * len(tenues)) if w > h else ((w + 10) * len(tenues), h), "white")
 for k, i in enumerate(tenues):
-    pl.paste(images[i], (k * 310, 0))
+    pl.paste(images[i], (0, k * (h + 10)) if w > h else (k * (w + 10), 0))
 pl.save(os.path.join(out, "planche.png"))
-images[-1].resize((600, 1200), Image.NEAREST).save(os.path.join(out, "final_x2.png"))
+images[-1].resize((2 * w, 2 * h), Image.NEAREST).save(os.path.join(out, "final_x2.png"))
 with open(os.path.join(out, "rapport.json"), "w") as f:
     json.dump(rep, f, ensure_ascii=False, indent=1)
 print(json.dumps({k: v for k, v in rep.items() if k != "qr_par_image"}, ensure_ascii=False, indent=1))

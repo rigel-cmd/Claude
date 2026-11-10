@@ -1,7 +1,8 @@
-# Bannière web 300 × 600 – Gazette du Palais 2026
+# Bannières web 300 × 600 et 600 × 200 – Gazette du Palais 2026
 
 Déclinaison web de la 4e de couverture de la Gazette du Palais : recrutement d'un avocat associé salarié
-(H/F), en priorité, et podcast « Hervé Gerbi raconte ». Elle est diffusée sur :
+(H/F), en priorité, et podcast « Hervé Gerbi raconte ». Elle existe en deux formats, avec le même contenu,
+la même animation et les mêmes QR codes, et elle est diffusée sur :
 - la page d'accueil du site de la Gazette du Palais ;
 - les articles de la rubrique Avocats ;
 - defrenois.fr ;
@@ -11,8 +12,14 @@ Déclinaison web de la 4e de couverture de la Gazette du Palais : recrutement d'
 |---|---|---:|---|
 | [`Banniere_300x600_animee.gif`](./Banniere_300x600_animee.gif) | GIF animé, 300 × 600 px | 102 Ko | Version à envoyer à la régie |
 | [`Banniere_300x600_fixe.jpg`](./Banniere_300x600_fixe.jpg) | JPEG, 300 × 600 px | 80 Ko | Version fixe, si la régie demande une image de secours ou n'accepte pas le GIF |
+| [`Banniere_600x200_animee.gif`](./Banniere_600x200_animee.gif) | GIF animé, 600 × 200 px | 60 Ko | Version à envoyer à la régie |
+| [`Banniere_600x200_fixe.jpg`](./Banniere_600x200_fixe.jpg) | JPEG, 600 × 200 px | 51 Ko | Version fixe, si la régie demande une image de secours ou n'accepte pas le GIF |
 
-Les deux fichiers respectent la limite de 150 Ko (150 000 octets).
+Les quatre fichiers respectent la limite de 150 Ko (150 000 octets). L'URL de redirection est la même pour
+les deux formats.
+
+Sauf mention contraire, la suite décrit le format 300 × 600 ; les particularités du 600 × 200 sont
+regroupées dans la section qui lui est consacrée.
 
 ## URL de redirection
 
@@ -121,33 +128,54 @@ modifiant quelques durées :
 - **Liseré tricolore :** il ferme la bannière, comme sur les autres supports du cabinet.
 - **Filet gris de 1 px :** il entoure la bannière, pour la détacher des pages blanches des sites.
 
-## Régénérer et contrôler la bannière
+## Format 600 × 200
+
+Même contenu, même déroulé (9,9 s, joué 3 fois) et mêmes QR codes que le 300 × 600, dans une mise en page
+horizontale :
+- **à gauche,** la photo, coupée en diagonale par le pan ;
+- **au centre,** sur le pan : l'étiquette, le titre, le filet et l'argument (crème pour l'offre,
+  anthracite pour le podcast). Le volet monte de la même façon ;
+- **à droite,** sur crème dans les deux scènes : le QR code, la légende « ← Scannez » et le logo.
+
+Ce qui change par rapport au 300 × 600, faute de place :
+- **QR codes :** modules de 3 px, soit 99 px pour l'offre et 87 px pour le podcast. C'est le minimum
+  retenu : les deux codes restent lus dans toutes les prises de vue simulées, y compris les plus dures ;
+- **titre** en 26 px, et argument (« Perspective rapide d’association ») sur deux lignes ;
+- **étiquettes sans pictogramme :** « RECRUTEMENT · GRENOBLE » n'aurait pas tenu avant le QR code ;
+- **logo** de 93 px de large.
+
+## Régénérer et contrôler les bannières
 
 ```bash
 pip install pillow numpy segno zxing-cpp
 npm install @expo-google-fonts/dm-serif-display @expo-google-fonts/poppins \
             @expo-google-fonts/open-sans material-design-icons-iconfont
-python3 generer_banniere.py node_modules
+python3 generer_banniere.py node_modules            # 300 × 600
+python3 generer_banniere_600x200.py node_modules    # 600 × 200
 python3 -I verifier_banniere.py Banniere_300x600_animee.gif Banniere_300x600_fixe.jpg controle \
         https://www.victimesetprejudices.fr/recrutements/avocat-associe-salarie/ \
         https://www.victimesetprejudices.fr/podcast/
 ```
 
-- **`generer_banniere.py` échoue si :**
+Pour contrôler le 600 × 200, remplacez `300x600` par `600x200` dans la dernière commande.
+
+- **Les deux scripts échouent si :**
   - un fichier dépasse 150 Ko ;
   - le GIF relu ne redonne pas exactement les images calculées ;
   - la zone claire d'un QR code est encombrée ;
-  - le pan s'approche à moins de 14 px du visage.
+  - le pan s'approche trop du visage (moins de 14 px en 300 × 600, de 12 px en 600 × 200).
+- **`banniere_commun.py`** regroupe ce que les deux formats partagent : charte, polices, QR codes,
+  contrôles et écriture du GIF.
 - **`verifier_banniere.py` contrôle :**
   - les dimensions, les poids et la durée totale ;
   - la concordance entre la dernière image du GIF et le JPEG ;
   - la lecture des QR codes à l'écran et dans des prises de vue simulées.
 
   Il produit aussi, dans le dossier `controle`, une planche des scènes et un rapport.
-- **Modifier la bannière (`generer_banniere.py`) :**
-  - les textes : dans `scene_offre()`, `scene_podcast()` et `pied()` ;
+- **Modifier une bannière** (`generer_banniere.py` ou `generer_banniere_600x200.py`) :
+  - les textes : dans `scene_offre()`, `scene_podcast()`, et `pied()` ou `colonne_qr()` ;
   - les durées : dans `images_animation()`, `coup_de_pouce()`, `volet()` et `CYCLE` ;
-  - la grille et les couleurs : en tête du script.
+  - la grille : en tête du script ; les couleurs et les adresses : dans `banniere_commun.py`.
 - **Fichiers en cas d'échec :** le script écrit d'abord sous un nom provisoire. Si un contrôle échoue, les
   fichiers précédents sont conservés.
 
