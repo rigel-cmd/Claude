@@ -22,57 +22,59 @@ code du podcast et sa légende remplacent ceux de l'offre.
 Pas de bouton : une bannière en image n'a qu'une adresse de clic, qui ne peut pas suivre l'alternance de
 l'offre et du podcast. Les QR codes sont les seuls appels à l'action, chacun menant à sa page.
 
-QR codes : modules de 4 px exactement, posés au pixel près (sans rééchantillonnage), foncés sur fond
-clair, avec une zone claire de 12 px (3 modules) tout autour.
+QR codes : modules de 3 px exactement, posés au pixel près (sans rééchantillonnage), foncés sur fond
+clair, avec une zone claire de 12 px (4 modules) tout autour. À 4 px, le QR code obligerait à couper le
+haut de la tête.
 
 Le script échoue si un fichier dépasse 150 Ko, si le GIF relu ne redonne pas exactement les images
-calculées, si la zone claire d'un QR code est encombrée ou si le pan s'approche à moins de 14 px du
-visage. Les éléments communs aux deux formats sont dans banniere_commun.py.
+calculées, si la zone claire d'un QR code est encombrée, si le pan s'approche à moins de 14 px du visage
+ou si le haut de la tête est à moins de 10 px du bord. Les éléments communs aux deux formats sont dans banniere_commun.py.
 """
 
 import os
 import sys
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 
-from banniere_commun import (ANTHRACITE, BLANC, CONTOUR_VISAGE, CREME, ENCRE, GRIS_CLAIR, ICONE_CASQUE,
-                             ICONE_ESSOR, ICONE_GROUPE, ICONE_RETOUR, ICONES, OPEN_SANS, OPEN_SANS_DEMI,
-                             ORANGE, ORANGE_TEXTE, POPPINS, RESSOURCES, ROUGE, SERIF, SERIF_ITALIQUE,
-                             URL_OFFRE, URL_PODCAST, cadre, controler_visage, controler_zone_claire,
-                             dessiner_qr, etiquette, livrer, lisere, logo, masque_lisse, matrice_qr, police,
-                             texte_lisse, utiliser_polices)
+from banniere_commun import (ANTHRACITE, BLANC, CREME, ENCRE, GRIS_CLAIR, ICONE_CASQUE, ICONE_ESSOR,
+                             ICONE_GROUPE, ICONE_RETOUR, ICONES, OPEN_SANS, OPEN_SANS_DEMI, ORANGE,
+                             ORANGE_TEXTE, POPPINS, ROUGE, SERIF, SERIF_ITALIQUE, URL_OFFRE, URL_PODCAST, cadre,
+                             contour_visage, controler_cadrage, controler_visage, controler_zone_claire,
+                             dessiner_qr, etiquette, livrer, lisere, logo, masque_lisse, matrice_qr, photo,
+                             police, texte_lisse, utiliser_polices)
 
 ICI = os.path.dirname(os.path.abspath(__file__))
 
 W, H = 300, 600
 X0 = 22                      # marges latérales
 X1 = W - X0
-DECALAGE_PHOTO = 82          # rognage du haut de la photo : le haut des cheveux est coupé, le visage remonte
+# Photo : la ressource (629 px de large) est réduite à la largeur de la bannière, puis abaissée pour
+# laisser de l'air au-dessus de la tête
+ECHELLE, DX, DY = 0.477, 0, 31
+MARGE_TETE = 10              # distance minimale entre le haut des cheveux et le bord de la bannière
+MARGE_VISAGE = 14            # distance minimale entre le bord du pan et le visage
 # Pan coupé : bord supérieur en diagonale, comme le pan crème de la 4e de couverture
-PAN_GAUCHE, PAN_DROITE = 300, 256
+PAN_GAUCHE, PAN_DROITE = 336, 292
 
 # Grille verticale (lignes de base), commune à l'offre et au podcast
-Y_ETIQUETTE = 324
-Y_TITRE = (361, 395)
-Y_FILET = 407
-Y_ARGUMENT = 428
+Y_ETIQUETTE = 357
+Y_TITRE = (394, 428)
+Y_FILET = 440
+Y_ARGUMENT = 461
 H_LISERE = 4
 
-# Pied : QR code à gauche, sur la marge ; légende et logo à droite (logo calé sur la marge droite et sur
-# le bas du QR code). Seuls appels à l'action, les QR codes sont grands : modules de 4 px
-MODULE = 4                   # taille d'un module de QR code, en pixels
-ZONE_CLAIRE = 12             # zone claire exigée autour des modules (3 modules)
-COTE_QR = 33 * MODULE        # QR code de l'offre : version 4, 33 modules, soit 132 px
+# Pied : QR code à gauche, sur la marge ; légende et logo à droite (logo calé sur le bas du QR code)
+MODULE = 3                   # taille d'un module de QR code, en pixels
+ZONE_CLAIRE = 12             # zone claire exigée autour des modules (4 modules)
+COTE_QR = 33 * MODULE        # QR code de l'offre : version 4, 33 modules, soit 99 px
 X_QR, Y_QR = X0, H - H_LISERE - ZONE_CLAIRE - COTE_QR
 # Haut du pied crème, commun aux deux scènes : il commence avec la zone claire du QR code de l'offre, pour
 # que le volet anthracite ne la réduise jamais ; il reste 8 px sous les jambages de l'argument
 Y_PIED = Y_QR - ZONE_CLAIRE
 assert Y_PIED - Y_ARGUMENT >= 12
-X_COLONNE = X_QR + COTE_QR + 16
-LARGEUR_LOGO = X1 - X_COLONNE
-
-MARGE_VISAGE = 14            # distance minimale entre le bord du pan et le visage
+X_COLONNE = X_QR + COTE_QR + 18
+LARGEUR_LOGO = 106
 
 
 # --------------------------------------------------------------------------
@@ -82,15 +84,6 @@ def masque_pan(decalage=0, bas=H):
     """Pan coupé. decalage > 0 abaisse le bord (volet montant) ; bas : le masque s'arrête au-dessus de
     cette ligne."""
     return masque_lisse([(0, PAN_GAUCHE + decalage), (W, PAN_DROITE + decalage), (W, bas), (0, bas)], W, H)
-
-
-def photo():
-    im = Image.open(os.path.join(RESSOURCES, "photo_herve_gerbi.jpg")).convert("RGB")
-    im = im.resize((W, round(im.height * W / im.width)), Image.LANCZOS)
-    im = im.filter(ImageFilter.UnsharpMask(radius=0.8, percent=50, threshold=2))
-    fond = Image.new("RGB", (W, H), ANTHRACITE)
-    fond.paste(im, (0, -DECALAGE_PHOTO))
-    return fond
 
 
 def titre(d, lignes):
@@ -104,7 +97,7 @@ def position_qr(url):
     return X_QR + (COTE_QR - cote) // 2, Y_QR + (COTE_QR - cote) // 2, cote
 
 
-Y_LEGENDE = (Y_QR + 26, Y_QR + 45)    # lignes de base de « Scannez » et de la suite
+Y_LEGENDE = (Y_QR + 18, Y_QR + 35)    # lignes de base de « Scannez » et de la suite
 
 
 def pied(im, url, suite, couleur_qr, couleur_verbe, decalage_fleche=0):
@@ -205,10 +198,10 @@ if __name__ == "__main__":
     utiliser_polices(sys.argv[1])
     sortie = sys.argv[2] if len(sys.argv) > 2 else ICI
     os.makedirs(sortie, exist_ok=True)
-    PHOTO, PAN = photo(), masque_pan()
-    contour = [(x, y - DECALAGE_PHOTO) for x, y in CONTOUR_VISAGE]
+    PHOTO, PAN = photo(W, H, ECHELLE, DX, DY), masque_pan()
     ok = livrer(images_animation(), PHOTO, np.array(PAN) == 0,
                 os.path.join(sortie, "Banniere_300x600_animee.gif"),
                 os.path.join(sortie, "Banniere_300x600_fixe.jpg"),
-                [lambda: controler_visage(PAN, contour, MARGE_VISAGE)], controle_image)
+                [lambda: controler_visage(PAN, contour_visage(ECHELLE, DX, DY), MARGE_VISAGE),
+                 lambda: controler_cadrage(ECHELLE, DY, MARGE_TETE)], controle_image)
     sys.exit(0 if ok else 1)

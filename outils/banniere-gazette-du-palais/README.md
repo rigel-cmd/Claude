@@ -10,8 +10,8 @@ la même animation et les mêmes QR codes, et elle est diffusée sur :
 
 | Fichier | Format | Poids | Usage |
 |---|---|---:|---|
-| [`Banniere_300x600_animee.gif`](./Banniere_300x600_animee.gif) | GIF animé, 300 × 600 px | 102 Ko | Version à envoyer à la régie |
-| [`Banniere_300x600_fixe.jpg`](./Banniere_300x600_fixe.jpg) | JPEG, 300 × 600 px | 80 Ko | Version fixe, si la régie demande une image de secours ou n'accepte pas le GIF |
+| [`Banniere_300x600_animee.gif`](./Banniere_300x600_animee.gif) | GIF animé, 300 × 600 px | 104 Ko | Version à envoyer à la régie |
+| [`Banniere_300x600_fixe.jpg`](./Banniere_300x600_fixe.jpg) | JPEG, 300 × 600 px | 78 Ko | Version fixe, si la régie demande une image de secours ou n'accepte pas le GIF |
 | [`Banniere_600x200_animee.gif`](./Banniere_600x200_animee.gif) | GIF animé, 600 × 200 px | 60 Ko | Version à envoyer à la régie |
 | [`Banniere_600x200_fixe.jpg`](./Banniere_600x200_fixe.jpg) | JPEG, 600 × 200 px | 51 Ko | Version fixe, si la régie demande une image de secours ou n'accepte pas le GIF |
 
@@ -66,9 +66,9 @@ logo à droite.
 
 - **Pourquoi deux QR codes :** ils mènent chacun à leur page, l'offre ou le podcast. Un lecteur sur ordinateur
   garde aussi la page sur son téléphone.
-- **Taille :** chaque module (petit carré) fait 4 px exactement, soit un QR code de 132 px (offre) ou 116 px
-  (podcast), environ 3,5 cm sur un écran d'ordinateur. À 2 px, les codes n'étaient plus lus dans les prises
-  de vue difficiles.
+- **Taille :** chaque module (petit carré) fait 3 px exactement, soit un QR code de 99 px (offre) ou 87 px
+  (podcast), environ 2,5 cm sur un écran d'ordinateur, dans les deux formats. À 2 px, les codes n'étaient
+  plus lus dans les prises de vue difficiles. À 4 px, il aurait fallu couper le haut de la tête.
 - **Lisibilité :**
   - modules posés au pixel près, foncés sur fond clair, avec 12 px de zone claire tout autour, sur toutes
     les images, transitions comprises ;
@@ -107,8 +107,11 @@ modifiant quelques durées :
 
 ## Reprise de la 4e de couverture
 
-- **Photo :** le portrait d'Hervé Gerbi est extrait du visuel fourni et recadré serré sur le visage (le haut
-  des cheveux est coupé, pour faire place au pied). Le pan reste à au moins 14 px du visage.
+- **Photo :** le portrait d'Hervé Gerbi est extrait du visuel fourni, avec la tête entière. Il comprend la
+  bande sombre qui le borde à gauche sur la 4e de couverture, jusqu'au texte du podcast exclu : ce
+  n'est pas une retouche. Dans les deux formats, le script vérifie :
+  - que le haut des cheveux reste à au moins 10 px du bord ;
+  - que le pan reste à au moins 14 px (300 × 600) ou 12 px (600 × 200) du visage.
 - **Pan coupé en diagonale :** il reprend le pan crème du bloc recrutement.
 - **Titres :** DM Serif Display, la police du visuel, avec un filet sous le titre (rouge pour l'offre,
   orange pour le podcast). « raconte » est en italique orange.
@@ -124,7 +127,7 @@ modifiant quelques durées :
 
   S'y ajoute un orange foncé, `#8C5800`, absent du visuel : il sert au mot « Scannez » du podcast, sur
   crème, où l'orange de la charte ne serait pas assez contrasté (contraste de 5,3:1).
-- **Logo :** 108 px de large, en pied de chaque scène, à droite du QR code.
+- **Logo :** 106 px de large, en pied de chaque scène, à droite du QR code.
 - **Liseré tricolore :** il ferme la bannière, comme sur les autres supports du cabinet.
 - **Filet gris de 1 px :** il entoure la bannière, pour la détacher des pages blanches des sites.
 
@@ -137,9 +140,7 @@ horizontale :
   anthracite pour le podcast). Le volet monte de la même façon ;
 - **à droite,** sur crème dans les deux scènes : le QR code, la légende « ← Scannez » et le logo.
 
-Ce qui change par rapport au 300 × 600, faute de place :
-- **QR codes :** modules de 3 px, soit 99 px pour l'offre et 87 px pour le podcast. C'est le minimum
-  retenu : les deux codes restent lus dans toutes les prises de vue simulées, y compris les plus dures ;
+Les QR codes ont la même taille que dans le 300 × 600 (99 px pour l'offre). Ce qui change, faute de place :
 - **titre** en 26 px, et argument (« Perspective rapide d’association ») sur deux lignes ;
 - **étiquettes sans pictogramme :** « RECRUTEMENT · GRENOBLE » n'aurait pas tenu avant le QR code ;
 - **logo** de 93 px de large.
@@ -163,7 +164,8 @@ Pour contrôler le 600 × 200, remplacez `300x600` par `600x200` dans la derniè
   - un fichier dépasse 150 Ko ;
   - le GIF relu ne redonne pas exactement les images calculées ;
   - la zone claire d'un QR code est encombrée ;
-  - le pan s'approche trop du visage (moins de 14 px en 300 × 600, de 12 px en 600 × 200).
+  - le pan s'approche trop du visage (moins de 14 px en 300 × 600, de 12 px en 600 × 200) ;
+  - le haut de la tête est à moins de 10 px du bord.
 - **`banniere_commun.py`** regroupe ce que les deux formats partagent : charte, polices, QR codes,
   contrôles et écriture du GIF.
 - **`verifier_banniere.py` contrôle :**

@@ -12,7 +12,7 @@ import os
 
 import numpy as np
 import segno
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 RESSOURCES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ressources")
 POIDS_MAX = 150_000            # 150 Ko, au sens strict (150 000 octets)
@@ -43,7 +43,12 @@ OPEN_SANS = "OpenSans_400Regular.ttf"
 OPEN_SANS_DEMI = "OpenSans_600SemiBold.ttf"
 ICONES = "MaterialIcons-Regular.ttf"
 
-# Contour du visage, barbe comprise, relevé sur la photo ramenée à 300 px de large (avant tout rognage)
+# Portrait : ressources/photo_herve_gerbi.jpg reprend la 4e de couverture de x = 404 à 866 et de y = 0 à 640
+# (en unités de la page, large de 866), à 1,36 px par unité. À gauche de x = 404 commence le texte du
+# podcast ; la bande de 404 à 425 est le fond sombre de la photo, sans texte.
+# Contour du visage, barbe comprise, relevé sur la partie x >= 425 de la ressource (DECALAGE_RESSOURCE px
+# plus à droite), ramenée à 300 px de large
+DECALAGE_RESSOURCE = 29
 CONTOUR_VISAGE = [(35, 185), (60, 110), (120, 88), (190, 100), (225, 170), (232, 250), (200, 255),
                   (185, 290), (170, 305), (150, 332), (125, 346), (100, 346), (75, 335), (55, 315),
                   (36, 265)]
@@ -72,6 +77,31 @@ def police(nom, taille):
 # --------------------------------------------------------------------------
 # Dessin
 # --------------------------------------------------------------------------
+def photo(w, h, echelle, dx, dy):
+    """Portrait réduit à `echelle` (pixels de bannière par pixel de ressource), décalé de (dx, dy), sur un
+    fond de w × h px."""
+    im = Image.open(os.path.join(RESSOURCES, "photo_herve_gerbi.jpg")).convert("RGB")
+    im = im.resize((round(im.width * echelle), round(im.height * echelle)), Image.LANCZOS)
+    im = im.filter(ImageFilter.UnsharpMask(radius=0.8, percent=50, threshold=2))
+    fond = Image.new("RGB", (w, h), ANTHRACITE)
+    fond.paste(im, (-dx, -dy))
+    return fond
+
+
+def contour_visage(echelle, dx, dy):
+    """Contour du visage en pixels de la bannière, pour la photo de photo(…, echelle, dx, dy)."""
+    return [((2 * x + DECALAGE_RESSOURCE) * echelle - dx, 2 * y * echelle - dy) for x, y in CONTOUR_VISAGE]
+
+
+def controler_cadrage(echelle, dy, marge):
+    """Vérifie que le haut de la chevelure (relevé à y = 45 sur la photo à 300 px) reste à au moins
+    `marge` px du haut de la bannière : la tête ne doit pas être coupée."""
+    haut = 2 * 45 * echelle - dy
+    if haut < marge:
+        print(f"La tête est coupée : le haut des cheveux est à {haut:.0f} px du haut (minimum : {marge} px)")
+    return haut >= marge
+
+
 @functools.lru_cache(maxsize=None)
 def logo(fichier, largeur):
     im = Image.open(os.path.join(RESSOURCES, fichier)).convert("RGBA")

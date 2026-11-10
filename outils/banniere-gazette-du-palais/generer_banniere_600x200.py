@@ -21,21 +21,21 @@ Pas de bouton, comme pour la bannière 300 × 600 : les QR codes sont les seuls 
 3 px (QR code de 99 px pour l'offre) : à 4 px, le QR code ne laisserait pas de place au texte.
 
 Le script échoue si un fichier dépasse 150 Ko, si le GIF relu ne redonne pas exactement les images
-calculées, si la zone claire d'un QR code est encombrée ou si le pan s'approche à moins de 12 px du
-visage.
+calculées, si la zone claire d'un QR code est encombrée, si le pan s'approche à moins de 12 px du visage
+ou si le haut de la tête est à moins de 10 px du bord.
 """
 
 import os
 import sys
 
 import numpy as np
-from PIL import Image, ImageChops, ImageDraw, ImageFilter
+from PIL import Image, ImageChops, ImageDraw
 
-from banniere_commun import (ANTHRACITE, BLANC, CONTOUR_VISAGE, CREME, ENCRE, GRIS_CLAIR, ICONE_ESSOR,
-                             ICONE_RETOUR, ICONES, OPEN_SANS, OPEN_SANS_DEMI, ORANGE, ORANGE_TEXTE, POPPINS,
-                             RESSOURCES, ROUGE, SERIF, SERIF_ITALIQUE, URL_OFFRE, URL_PODCAST, cadre,
+from banniere_commun import (ANTHRACITE, BLANC, CREME, ENCRE, GRIS_CLAIR, ICONE_ESSOR, ICONE_RETOUR, ICONES,
+                             OPEN_SANS, OPEN_SANS_DEMI, ORANGE, ORANGE_TEXTE, POPPINS, ROUGE, SERIF,
+                             SERIF_ITALIQUE, URL_OFFRE, URL_PODCAST, cadre, contour_visage, controler_cadrage,
                              controler_visage, controler_zone_claire, dessiner_qr, livrer, lisere, logo,
-                             masque_lisse, matrice_qr, police, texte_lisse, utiliser_polices)
+                             masque_lisse, matrice_qr, photo, police, texte_lisse, utiliser_polices)
 
 ICI = os.path.dirname(os.path.abspath(__file__))
 
@@ -43,9 +43,10 @@ W, H = 600, 200
 H_LISERE = 4
 H_UTILE = H - H_LISERE
 
-# Photo : la ressource (600 px de large) est réduite à ECHELLE, puis décalée de (DX, DY)
-ECHELLE = 0.3
-DX, DY = 12, 38
+# Photo : la ressource (629 px de large) est réduite à ECHELLE, puis décalée de (DX, DY) ; la tête entière
+# tient dans la hauteur, avec de l'air au-dessus des cheveux
+ECHELLE, DX, DY = 0.2715, 9, 12
+MARGE_TETE = 10
 # Pan coupé : bord gauche en diagonale, plus à droite en haut qu'en bas, comme le pan de la 4e de couverture
 PAN_HAUT, PAN_BAS = 160, 128
 MARGE_VISAGE = 12
@@ -76,15 +77,6 @@ Y_LEGENDE = (Y_QR + 22, Y_QR + 40)    # lignes de base de « Scannez » et de la
 # --------------------------------------------------------------------------
 def masque_pan():
     return masque_lisse([(PAN_HAUT, 0), (W, 0), (W, H), (PAN_BAS, H)], W, H)
-
-
-def photo():
-    im = Image.open(os.path.join(RESSOURCES, "photo_herve_gerbi.jpg")).convert("RGB")
-    im = im.resize((round(im.width * ECHELLE), round(im.height * ECHELLE)), Image.LANCZOS)
-    im = im.filter(ImageFilter.UnsharpMask(radius=0.8, percent=50, threshold=2))
-    fond = Image.new("RGB", (W, H), ANTHRACITE)
-    fond.paste(im, (-DX, -DY))
-    return fond
 
 
 def position_qr(url):
@@ -214,13 +206,13 @@ if __name__ == "__main__":
     utiliser_polices(sys.argv[1])
     sortie = sys.argv[2] if len(sys.argv) > 2 else ICI
     os.makedirs(sortie, exist_ok=True)
-    PHOTO, PAN = photo(), masque_pan()
+    PHOTO, PAN = photo(W, H, ECHELLE, DX, DY), masque_pan()
+    assert PHOTO.getpixel((PAN_HAUT + 1, 0)) != ANTHRACITE, "la photo ne couvre pas tout le coin haut"
     visible = np.array(PAN) == 0
     visible[H - H_LISERE:, :] = False                      # le liseré passe sous la photo
-    # Contour du visage : relevé sur la photo à 300 px de large, soit la moitié de la ressource
-    contour = [(x * 2 * ECHELLE - DX, y * 2 * ECHELLE - DY) for x, y in CONTOUR_VISAGE]
     ok = livrer(images_animation(), PHOTO, visible,
                 os.path.join(sortie, "Banniere_600x200_animee.gif"),
                 os.path.join(sortie, "Banniere_600x200_fixe.jpg"),
-                [lambda: controler_visage(PAN, contour, MARGE_VISAGE)], controle_image)
+                [lambda: controler_visage(PAN, contour_visage(ECHELLE, DX, DY), MARGE_VISAGE),
+                 lambda: controler_cadrage(ECHELLE, DY, MARGE_TETE)], controle_image)
     sys.exit(0 if ok else 1)
